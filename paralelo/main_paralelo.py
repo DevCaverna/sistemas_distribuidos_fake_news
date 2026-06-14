@@ -1,6 +1,6 @@
 import argparse
 
-from core.automato import contar_estados, IGNORANTE, ESPALHADOR, INATIVO
+from core.automato import ESPALHADOR, IGNORANTE, INATIVO, contar_estados
 from core.utils import Cronometro
 from paralelo.mestre import MestreParalelo
 
@@ -26,7 +26,7 @@ def main():
         num_workers=args.workers,
     )
 
-    threads = mestre.iniciar_workers()
+    mestre.iniciar_workers()
 
     crono = Cronometro()
     crono.iniciar()
@@ -39,9 +39,13 @@ def main():
     total = args.linhas * args.colunas
 
     print(f"Tempo: {crono.elapsed:.4f}s")
-    print(f"Ignorantes: {contagem[IGNORANTE]} ({contagem[IGNORANTE]/total*100:.2f}%)")
-    print(f"Espalhadores: {contagem[ESPALHADOR]} ({contagem[ESPALHADOR]/total*100:.2f}%)")
-    print(f"Inativos: {contagem[INATIVO]} ({contagem[INATIVO]/total*100:.2f}%)")
+    print(
+        f"Ignorantes: {contagem[IGNORANTE]} ({contagem[IGNORANTE] / total * 100:.2f}%)"
+    )
+    print(
+        f"Espalhadores: {contagem[ESPALHADOR]} ({contagem[ESPALHADOR] / total * 100:.2f}%)"
+    )
+    print(f"Inativos: {contagem[INATIVO]} ({contagem[INATIVO] / total * 100:.2f}%)")
 
 
 if __name__ == "__main__":
