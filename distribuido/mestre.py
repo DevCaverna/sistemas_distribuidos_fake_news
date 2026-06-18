@@ -5,14 +5,17 @@ import Pyro5.api
 import Pyro5.server
 
 from core.automato import contar_estados, ESPALHADOR
-from core.utils import criar_matriz, fatiar_matriz, remontar_matriz
+from core.utils import (
+    criar_matriz, criar_mapa_influenciadores,
+    fatiar_matriz, remontar_matriz, calcular_offsets,
+)
 
 
 @Pyro5.api.expose
 class MestreDistribuido:
 
     def __init__(self, linhas, colunas, geracoes, percentual_espalhadores,
-                 limiar, semente, num_workers):
+                 limiar, semente, num_workers, usar_influenciadores=True):
         self.linhas = linhas
         self.colunas = colunas
         self.geracoes = geracoes
@@ -21,6 +24,11 @@ class MestreDistribuido:
 
         self.matriz = criar_matriz(linhas, colunas, percentual_espalhadores, semente)
         self.fatias = fatiar_matriz(self.matriz, num_workers)
+        self._offsets = calcular_offsets(linhas, num_workers)
+
+        self.mapa_influenciadores = None
+        if usar_influenciadores:
+            self.mapa_influenciadores = criar_mapa_influenciadores(linhas, colunas)
 
         self._workers_registrados = 0
         self._lock_registro = threading.Lock()
@@ -51,6 +59,10 @@ class MestreDistribuido:
             ghost_topo = self.fatias[wid - 1][-1] if wid > 0 else None
             ghost_base = self.fatias[wid + 1][0] if wid < self.num_workers - 1 else None
 
+            influenciadores_serializavel = None
+            if self.mapa_influenciadores is not None:
+                influenciadores_serializavel = list(self.mapa_influenciadores)
+
             config = {
                 "worker_id": wid,
                 "fatia": fatia,
@@ -59,6 +71,8 @@ class MestreDistribuido:
                 "num_workers": self.num_workers,
                 "ghost_topo_inicial": ghost_topo,
                 "ghost_base_inicial": ghost_base,
+                "offset_global": self._offsets[wid],
+                "mapa_influenciadores": influenciadores_serializavel,
             }
 
             if self._workers_registrados == self.num_workers:

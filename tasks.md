@@ -57,10 +57,10 @@ Pode ser iniciada em paralelo, criando scripts vazios ou mockados, mas depende d
 
 Pode iniciar em paralelo com D, após B e C estarem estáveis.
 
-- [ ] **Task E.1: Escolha da Extensão**
-  - **Ação:** Definir qual melhoria implementar (ex: "Múltiplas fake news simultâneas" ou "Balanceamento dinâmico de carga").
-- [ ] **Task E.2: Implementação da Extensão**
-  - **Ação:** Adicionar a nova funcionalidade ao repositório (preferencialmente ativável via parâmetro/flag no Master para não quebrar a versão base).
+- [x] **Task E.1: Escolha da Extensão**
+  - **Ação:** Extensão escolhida: **Influenciadores Digitais** — agentes com vizinhança 5×5 e transmissão probabilística (45-60%).
+- [x] **Task E.2: Implementação da Extensão**
+  - **Ação:** Implementado em `core/automato.py` (lógica 5×5 + probabilidade) e `core/utils.py` (`criar_mapa_influenciadores` — 1% da população). Integrado nas versões sequencial (`main_sequencial.py`) e distribuída (`distribuido/mestre.py` + `distribuido/worker.py`) via flag `usar_influenciadores`.
 - [ ] **Task E.3: Medição do Impacto da Melhoria**
   - **Ação:** Gerar um gráfico demonstrando como a melhoria afetou a propagação (ex: gráfico mostrando como bots automatizados aceleraram a infecção da rede).
 

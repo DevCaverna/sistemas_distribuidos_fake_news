@@ -6,7 +6,10 @@ produz resultados idênticos ao código original do professor.
 """
 
 from core.automato import calcular_geracao, contar_estados, ESPALHADOR
-from core.utils import criar_matriz, imprimir_grade, imprimir_estatisticas, Cronometro
+from core.utils import (
+    criar_matriz, criar_mapa_influenciadores,
+    imprimir_grade, imprimir_estatisticas, Cronometro,
+)
 
 
 def executar_sequencial(
@@ -17,6 +20,7 @@ def executar_sequencial(
     limiar=2,
     semente=42,
     mostrar_grade=False,
+    usar_influenciadores=True,
 ):
     """Executa a simulação sequencial completa usando o módulo core.
 
@@ -35,6 +39,9 @@ def executar_sequencial(
     mostrar_grade : bool
         Se ``True``, imprime a grade a cada geração (use apenas para
         matrizes pequenas).
+    usar_influenciadores : bool
+        Se ``True``, ativa a mecânica de Influenciadores Digitais (1%
+        da população com vizinhança 5x5 e transmissão probabilística).
 
     Retorna
     -------
@@ -42,6 +49,10 @@ def executar_sequencial(
         (matriz_final, tempo_total_segundos)
     """
     matriz = criar_matriz(linhas, colunas, percentual_espalhadores, semente)
+
+    mapa_influenciadores = None
+    if usar_influenciadores:
+        mapa_influenciadores = criar_mapa_influenciadores(linhas, colunas)
 
     total_celulas = linhas * colunas
 
@@ -56,6 +67,11 @@ def executar_sequencial(
           f"({percentual_espalhadores * 100:.2f}%)")
     print(f"  Limiar:       {limiar} vizinhos")
     print(f"  Semente:      {semente}")
+
+    if mapa_influenciadores:
+        print(f"  Influenciadores: {len(mapa_influenciadores):,} "
+              f"(1% da população, vizinhança 5x5, prob. 45-60%)")
+
     print("=" * 60)
     print()
 
@@ -63,14 +79,20 @@ def executar_sequencial(
     crono.iniciar()
 
     for g in range(1, geracoes + 1):
-        # Na versão sequencial, não há bordas fantasma — a matriz é inteira.
-        matriz = calcular_geracao(matriz, borda_topo=None, borda_base=None, limiar=limiar)
+        matriz = calcular_geracao(
+            matriz,
+            borda_topo=None,
+            borda_base=None,
+            limiar=limiar,
+            mapa_influenciadores=mapa_influenciadores,
+            offset_global=0,
+        )
 
         contagem = contar_estados(matriz)
         imprimir_estatisticas(contagem, geracao=g, total_celulas=total_celulas)
 
         if mostrar_grade:
-            imprimir_grade(matriz)
+            imprimir_grade(matriz, mapa_influenciadores=mapa_influenciadores)
 
         if contagem[ESPALHADOR] == 0:
             print("\n✔ Propagação encerrada: não há mais espalhadores.")
@@ -104,4 +126,5 @@ if __name__ == "__main__":
         limiar=3,
         semente=42,
         mostrar_grade=False,
+        usar_influenciadores=True,
     )

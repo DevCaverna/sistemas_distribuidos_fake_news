@@ -3,11 +3,11 @@
 ## 1. Visão Geral da Arquitetura
 
 A arquitetura adotada é o padrão **Mestre-Trabalhador (Master-Worker)** com topologia em estrela.
-A comunicação será realizada de forma explícita via Sockets TCP nativos do Python. Esta escolha permite o controle granular sobre o envio e recebimento de pacotes, facilitando a medição do custo de comunicação (exigência do trabalho) e garantindo que não haja paralelização implícita.
+A comunicação é realizada via **Pyro5 (Python Remote Objects)**, que abstrai a invocação de métodos remotos (RMI) sobre TCP. O Mestre é registrado como objeto remoto no Name Server do Pyro5, e os Workers obtêm um proxy para invocar seus métodos diretamente.
 
 - **Linguagem:** Python 3.x
-- **Comunicação:** Biblioteca `socket` (TCP/IPv4)
-- **Serialização de Dados:** Biblioteca `pickle` (ou `json`) acoplada com empacotamento de tamanho de cabeçalho (`struct.pack`).
+- **Comunicação:** Pyro5 (RMI sobre TCP/IPv4)
+- **Serialização de Dados:** Serpent (padrão do Pyro5)
 
 ## 2. Estratégia de Particionamento (Decomposição 1D)
 
@@ -29,9 +29,9 @@ Responsável pela orquestração, distribuição de carga e sincronização.
 
 **Responsabilidades:**
 
-1. Inicializar a matriz completa com o estado inicial (Ignorantes e Espalhadores).
-2. Levantar um servidor Socket e aguardar a conexão de `W` Workers.
-3. Fatiar a matriz e enviar para cada Worker sua respectiva parte.
+1. Inicializar a matriz completa com o estado inicial (Ignorantes, Espalhadores e mapa de Influenciadores).
+2. Registrar-se como objeto remoto no Name Server do Pyro5 e aguardar a conexão de `W` Workers.
+3. Fatiar a matriz e fornecer a cada Worker sua respectiva parte via `registrar_worker()`.
 4. **Sincronizador de Geração (Barreira):** A cada geração, receber as fronteiras atualizadas dos Workers e repassá-las cruzadas (a base do Worker 1 vai para o topo do Worker 2, etc.).
 5. Recolher as submatrizes no final, remontar a matriz global e calcular o tempo total (para o Speedup).
 
@@ -41,31 +41,21 @@ Processo isolado (pode rodar em terminais ou máquinas diferentes) que processa 
 
 **Responsabilidades:**
 
-1. Conectar-se ao Mestre via IP/Porta.
-2. Receber sua submatriz e alocar espaço para as Ghost Rows.
+1. Obter um proxy do Mestre via Pyro5 Name Server.
+2. Registrar-se e receber sua submatriz, ghost rows iniciais, mapa de influenciadores e offset global.
 3. Executar o loop de gerações.
 4. Ao fim de cada geração local, enviar as fronteiras (sua primeira e última linha real) para o Mestre.
 5. Atualizar as Ghost Rows com os dados recebidos do Mestre antes de calcular a próxima geração.
 6. Retornar a submatriz final processada.
 
-## 4. Protocolo de Comunicação (Mensageria)
+## 4. Protocolo de Comunicação (RMI via Pyro5)
 
-Para evitar o problema de leitura fragmentada no TCP (TCP streaming), toda mensagem enviada pelo socket deve ter um prefixo de 4 bytes indicando o tamanho do payload.
+A comunicação é realizada via invocação de métodos remotos. O Mestre expõe os seguintes métodos:
 
-**Estrutura do Pacote:**
-
-```
-[Tamanho: 4 bytes int][Payload Serializado com Pickle]
-```
-
-**Tipos de Mensagens (Payloads):**
-
-- `INIT` (Mestre -> Worker): Contém a submatriz inicial, número da geração máxima, ID do Worker e vizinhos lógicos.
-- `SYNC_SEND` (Worker -> Mestre): Envia as linhas de borda atualizadas da geração atual.
-  - Conteúdo: `{ worker_id, geracao, linha_topo, linha_base }`
-- `SYNC_RECEIVE` (Mestre -> Worker): Devolve as ghost rows preenchidas com os dados dos vizinhos.
-  - Conteúdo: `{ geracao, fantasma_topo, fantasma_base }`
-- `RESULT` (Worker -> Mestre): Submatriz final após o término de todas as gerações.
+- `registrar_worker()` → Retorna config inicial (fatia, ghost rows, limiar, mapa de influenciadores, offset global).
+- `enviar_bordas(worker_id, geracao, borda_topo, borda_base, contagem_espalhadores)` → Worker envia fronteiras atualizadas.
+- `obter_ghosts(worker_id, geracao)` → Worker recebe ghost rows cruzadas dos vizinhos.
+- `enviar_resultado(worker_id, fatia_final)` → Worker envia submatriz final processada.
 
 ## 5. Fluxo de Execução Passo a Passo (Garantia de Consistência)
 
@@ -73,13 +63,12 @@ A consistência de estado é o ponto mais crítico. Para resolver isso, usamos a
 
 **Fluxo por Geração G:**
 
-1. **Cálculo Local:** O Worker lê de `matriz_atual` e escreve as mudanças em `matriz_proxima`. Ele processa apenas suas linhas reais (índices 1 a K).
-2. **Swap:** `matriz_atual = matriz_proxima`.
-3. **Envio de Fronteiras:** O Worker extrai a linha 1 (topo) e a linha K (base) da `matriz_atual` e envia para o Mestre via pacote `SYNC_SEND`.
-4. **Barreira no Mestre:** O Mestre bloqueia. Ele só continua quando recebe pacotes `SYNC_SEND` de todos os Workers para a geração G.
-5. **Roteamento:** O Mestre cruza os dados e envia pacotes `SYNC_RECEIVE` para os Workers.
-6. **Atualização de Fantasmas:** O Worker recebe os pacotes, atualiza os índices 0 e K+1 da `matriz_atual`.
-7. **Avanço:** A geração G termina. Inicia-se G+1.
+1. **Cálculo Local:** O Worker executa `calcular_geracao()` sobre sua fatia, recebendo as ghost rows atuais e o mapa de influenciadores.
+2. **Envio de Fronteiras:** O Worker envia a primeira e última linha da fatia calculada via `enviar_bordas()`.
+3. **Barreira no Mestre:** O Mestre bloqueia (via `threading.Condition`). Ele só libera quando recebe bordas de todos os Workers para a geração G.
+4. **Roteamento:** O Mestre cruza os dados e disponibiliza via `obter_ghosts()`.
+5. **Atualização de Fantasmas:** O Worker recebe as novas ghost rows.
+6. **Avanço:** A geração G termina. Inicia-se G+1.
 
 ## 6. Coleta de Métricas (Requisitos de Avaliação)
 
@@ -95,4 +84,7 @@ Para buscar a pontuação extra de inovações, a arquitetura permite as seguint
 
 - **Redução de Comunicação (Comunicação Peer-to-Peer):** Em vez do Mestre fazer o roteamento das bordas (Fase 5), o Mestre envia aos Workers os IPs uns dos outros. A cada geração, o Worker X abre um socket direto com o Worker X-1 e X+1 para trocar bordas. Isso diminui o gargalo no Mestre drasticamente.
 - **Influenciadores Digitais:**
-  - _Como:_ Algumas células podem ser inicializadas com o estado "Super Espalhador" (raio de vizinhança maior ou probabilidade de contágio de 100%). No envio da carga inicial (`INIT`), o Mestre sinaliza essas células.
+  - _Distribuição:_ 1% da população total é marcada estaticamente como influenciador no início da simulação (`criar_mapa_influenciadores` em `core/utils.py`).
+  - _Vizinhança Estendida:_ Quando um influenciador está no estado ESPALHADOR, seu raio de influência abrange um bloco 5×5 (até 24 vizinhos), ao invés da vizinhança de Moore padrão (3×3, 8 vizinhos).
+  - _Transmissão Probabilística:_ A cada tentativa de conversão de um IGNORANTE dentro do bloco 5×5, a probabilidade é sorteada uniformemente entre 45% e 60%.
+  - _Transporte Distribuído:_ O mapa de influenciadores é serializado como lista de tuplas e enviado pelo Mestre a cada Worker na fase `INIT` (`registrar_worker`). O Worker reconstrói o `set` localmente e o repassa a `calcular_geracao` junto com o `offset_global` da sua fatia.

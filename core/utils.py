@@ -14,10 +14,6 @@ import time
 from core.automato import IGNORANTE, ESPALHADOR, INATIVO
 
 
-# ---------------------------------------------------------------------------
-# Geração da matriz inicial
-# ---------------------------------------------------------------------------
-
 def criar_matriz(linhas, colunas, percentual_espalhadores=0.02, semente=42):
     """Gera a matriz inicial da população.
 
@@ -54,9 +50,17 @@ def criar_matriz(linhas, colunas, percentual_espalhadores=0.02, semente=42):
     return matriz
 
 
-# ---------------------------------------------------------------------------
-# Fatiamento da matriz em submatrizes para N nós
-# ---------------------------------------------------------------------------
+def criar_mapa_influenciadores(linhas, colunas, percentual=0.01, semente_influenciadores=123):
+
+    rng = random.Random(semente_influenciadores)
+
+    total = int(linhas * colunas * percentual)
+
+    todas_posicoes = [(i, j) for i in range(linhas) for j in range(colunas)]
+    influenciadores = set(rng.sample(todas_posicoes, min(total, len(todas_posicoes))))
+
+    return influenciadores
+
 
 def fatiar_matriz(matriz, num_fatias):
     """Divide a matriz global horizontalmente em ``num_fatias`` submatrizes.
@@ -82,7 +86,6 @@ def fatiar_matriz(matriz, num_fatias):
     inicio = 0
 
     for i in range(num_fatias):
-        # O último nó absorve o resto caso a divisão não seja exata
         if i == num_fatias - 1:
             fim = total_linhas
         else:
@@ -92,6 +95,21 @@ def fatiar_matriz(matriz, num_fatias):
         inicio = fim
 
     return fatias
+
+
+def calcular_offsets(total_linhas, num_fatias):
+    tamanho_base = total_linhas // num_fatias
+    offsets = []
+    inicio = 0
+
+    for i in range(num_fatias):
+        offsets.append(inicio)
+        if i == num_fatias - 1:
+            inicio = total_linhas
+        else:
+            inicio += tamanho_base
+
+    return offsets
 
 
 def remontar_matriz(fatias):
@@ -112,10 +130,6 @@ def remontar_matriz(fatias):
         matriz.extend(fatia)
     return matriz
 
-
-# ---------------------------------------------------------------------------
-# Medição de tempo
-# ---------------------------------------------------------------------------
 
 class Cronometro:
     """Wrapper simples sobre ``time.perf_counter`` para medições de desempenho.
@@ -151,10 +165,6 @@ class Cronometro:
         return fim - self._inicio
 
 
-# ---------------------------------------------------------------------------
-# Impressão da grade no terminal
-# ---------------------------------------------------------------------------
-
 _SIMBOLOS = {
     IGNORANTE: ".",
     ESPALHADOR: "E",
@@ -162,7 +172,7 @@ _SIMBOLOS = {
 }
 
 
-def imprimir_grade(grade, limite=30):
+def imprimir_grade(grade, limite=30, mapa_influenciadores=None):
     """Imprime a grade (ou parte dela) no terminal com símbolos legíveis.
 
     Parâmetros
@@ -176,7 +186,13 @@ def imprimir_grade(grade, limite=30):
     colunas = min(len(grade[0]), limite)
 
     for i in range(linhas):
-        print(" ".join(_SIMBOLOS[grade[i][j]] for j in range(colunas)))
+        partes = []
+        for j in range(colunas):
+            simbolo = _SIMBOLOS[grade[i][j]]
+            if mapa_influenciadores and (i, j) in mapa_influenciadores:
+                simbolo = simbolo.lower() + "*"
+            partes.append(simbolo)
+        print(" ".join(partes))
     print()
 
 
