@@ -161,6 +161,49 @@ def calcular_geracao(fatia, borda_topo=None, borda_base=None, limiar=2,
     return nova_fatia
 
 
+def aplicar_midia(fatia, media_ativa, rng=random, chance_alcance=0.15):
+    """Aplica o efeito da mídia sobre uma fatia da população.
+
+    Quando a mídia está ativa, cada célula IGNORANTE pode ser alcançada
+    pela mídia com probabilidade ``chance_alcance``. Se alcançada:
+      - 8%  de chance de se tornar ESPALHADOR  (mídia dissemina fake news)
+      - 92% de chance de se tornar INATIVO    (mídia combate fake news)
+
+    Parâmetros
+    ----------
+    fatia : list[list[int]]
+        Submatriz com as células já actualizadas pela geração atual.
+    media_ativa : bool
+        Se ``False``, a fatia é retornada sem alterações.
+    rng : random.Random, opcional
+        Gerador de números aleatórios (padrão: módulo ``random``).
+    chance_alcance : float
+        Probabilidade de uma célula IGNORANTE ser alcançada pela mídia
+        em uma dada geração (padrão: 0.15 = 15%).
+
+    Retorna
+    -------
+    list[list[int]]
+        Fatia com os efeitos da mídia aplicados.
+    """
+    if not media_ativa:
+        return fatia
+
+    nova_fatia = []
+    for linha in fatia:
+        nova_linha = []
+        for celula in linha:
+            if celula == IGNORANTE and rng.random() < chance_alcance:
+                if rng.random() < 0.08:
+                    nova_linha.append(ESPALHADOR)
+                else:
+                    nova_linha.append(INATIVO)
+            else:
+                nova_linha.append(celula)
+        nova_fatia.append(nova_linha)
+    return nova_fatia
+
+
 def contar_estados(matriz):
     """Conta a quantidade de cada estado em uma (sub)matriz.
 

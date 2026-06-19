@@ -5,7 +5,9 @@ Reutiliza a lógica do ``core/`` para validar que a base compartilhada
 produz resultados idênticos ao código original do professor.
 """
 
-from core.automato import calcular_geracao, contar_estados, ESPALHADOR
+import argparse
+
+from core.automato import aplicar_midia, calcular_geracao, contar_estados, ESPALHADOR
 from core.utils import (
     criar_matriz, criar_mapa_influenciadores,
     imprimir_grade, imprimir_estatisticas, Cronometro,
@@ -21,6 +23,8 @@ def executar_sequencial(
     semente=42,
     mostrar_grade=False,
     usar_influenciadores=True,
+    usar_midia=True,
+    geracao_midia=5,
 ):
     """Executa a simulação sequencial completa usando o módulo core.
 
@@ -42,6 +46,10 @@ def executar_sequencial(
     usar_influenciadores : bool
         Se ``True``, ativa a mecânica de Influenciadores Digitais (1%
         da população com vizinhança 5x5 e transmissão probabilística).
+    usar_midia : bool
+        Se ``True``, ativa o efeito da mídia.
+    geracao_midia : int
+        Geração a partir da qual a mídia começa a atuar (padrão: 5).
 
     Retorna
     -------
@@ -72,6 +80,10 @@ def executar_sequencial(
         print(f"  Influenciadores: {len(mapa_influenciadores):,} "
               f"(1% da população, vizinhança 5x5, prob. 45-60%)")
 
+    if usar_midia:
+        print(f"  Mídia:         ativa a partir da geração {geracao_midia}"
+              f" (8% dissemina / 92% combate)")
+
     print("=" * 60)
     print()
 
@@ -87,6 +99,9 @@ def executar_sequencial(
             mapa_influenciadores=mapa_influenciadores,
             offset_global=0,
         )
+
+        if usar_midia:
+            matriz = aplicar_midia(matriz, media_ativa=g >= geracao_midia)
 
         contagem = contar_estados(matriz)
         imprimir_estatisticas(contagem, geracao=g, total_celulas=total_celulas)
@@ -118,13 +133,28 @@ def executar_sequencial(
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--linhas", type=int, default=100)
+    parser.add_argument("--colunas", type=int, default=100)
+    parser.add_argument("--geracoes", type=int, default=50)
+    parser.add_argument("--espalhadores", type=float, default=0.05)
+    parser.add_argument("--limiar", type=int, default=3)
+    parser.add_argument("--semente", type=int, default=42)
+    parser.add_argument("--mostrar-grade", action="store_true")
+    parser.add_argument("--influenciadores", type=bool, default=True)
+    parser.add_argument("--usar-midia", type=bool, default=True)
+    parser.add_argument("--geracao-midia", type=int, default=5)
+    args = parser.parse_args()
+
     executar_sequencial(
-        linhas=100,
-        colunas=100,
-        geracoes=50,
-        percentual_espalhadores=0.05,
-        limiar=3,
-        semente=42,
-        mostrar_grade=False,
-        usar_influenciadores=True,
+        linhas=args.linhas,
+        colunas=args.colunas,
+        geracoes=args.geracoes,
+        percentual_espalhadores=args.espalhadores,
+        limiar=args.limiar,
+        semente=args.semente,
+        mostrar_grade=args.mostrar_grade,
+        usar_influenciadores=args.influenciadores,
+        usar_midia=args.usar_midia,
+        geracao_midia=args.geracao_midia,
     )

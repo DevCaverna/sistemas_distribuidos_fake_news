@@ -21,13 +21,27 @@ O código está estruturado para maximizar o reaproveitamento lógico:
 
 O modelo base foi estendido com o agente **Influenciador Digital**, que simula perfis de alto impacto em redes sociais:
 
-| Parâmetro | Valor |
-|---|---|
-| Distribuição Inicial | 1% da população total (mapeamento estático) |
-| Vizinhança | Bloco 5×5 (até 24 vizinhos), ao invés de Moore 3×3 |
+| Parâmetro                    | Valor                                                |
+| ---------------------------- | ---------------------------------------------------- |
+| Distribuição Inicial         | 1% da população total (mapeamento estático)          |
+| Vizinhança                   | Bloco 5×5 (até 24 vizinhos), ao invés de Moore 3×3   |
 | Probabilidade de Transmissão | Sorteada uniformemente entre 45% e 60% por tentativa |
 
 A flag `--influenciadores` (CLI) ou `usar_influenciadores` (código) ativa/desativa esta mecânica.
+
+## 🧠 Extensão: Mídia
+
+Após uma determinada geração (`--geracao-midia`, padrão 5), a **mídia** começa a atuar sobre a população
+a cada geração, representando a cobertura jornalística do fenômeno.
+
+A cada geração, **15% das células IGNORANTE** são alcançadas pela mídia. Destas:
+
+| Efeito              | Chance | Consequência           |
+| ------------------- | ------ | ---------------------- |
+| Dissemina fake news | 8%     | IGNORANTE → ESPALHADOR |
+| Combate fake news   | 92%    | IGNORANTE → INATIVO    |
+
+A flag `--usar-midia` (default `True`) ativa/desativa a mecânica.
 
 ## ⚙️ Executando o Projeto
 
@@ -69,17 +83,20 @@ python3 -m distribuido.main_worker --host localhost --porta-ns 9090
 
 **Parâmetros do Mestre:**
 
-| Parâmetro        | Default | Descrição                          |
-| ---------------- | ------- | ---------------------------------- |
-| `--linhas`       | 100     | Número de linhas da matriz         |
-| `--colunas`      | 100     | Número de colunas da matriz        |
-| `--geracoes`     | 50      | Número de gerações                 |
-| `--espalhadores` | 0.05    | Percentual inicial de espalhadores |
-| `--limiar`       | 3       | Limiar de contágio                 |
-| `--semente`      | 42      | Semente aleatória                  |
-| `--workers`      | 2       | Quantidade de workers              |
-| `--host`         | 0.0.0.0 | IP do Mestre                       |
-| `--porta-ns`     | 9090    | Porta do Name Server               |
+| Parâmetro           | Default | Descrição                               |
+| ------------------- | ------- | --------------------------------------- |
+| `--linhas`          | 100     | Número de linhas da matriz              |
+| `--colunas`         | 100     | Número de colunas da matriz             |
+| `--geracoes`        | 50      | Número de gerações                      |
+| `--espalhadores`    | 0.05    | Percentual inicial de espalhadores      |
+| `--limiar`          | 3       | Limiar de contágio                      |
+| `--semente`         | 42      | Semente aleatória                       |
+| `--workers`         | 2       | Quantidade de workers                   |
+| `--host`            | 0.0.0.0 | IP do Mestre                            |
+| `--porta-ns`        | 9090    | Porta do Name Server                    |
+| `--influenciadores` | True    | Ativa/desativa influenciadores digitais |
+| `--usar-midia`      | True    | Ativa/desativa efeito da mídia          |
+| `--geracao-midia`   | 5       | Geração a partir da qual a mídia age    |
 
 **Arquitetura:**
 

@@ -1,6 +1,6 @@
 import Pyro5.api
 
-from core.automato import calcular_geracao, contar_estados, ESPALHADOR
+from core.automato import aplicar_midia, calcular_geracao, contar_estados, ESPALHADOR
 
 
 def executar_worker(host_ns="localhost", porta_ns=9090):
@@ -15,6 +15,8 @@ def executar_worker(host_ns="localhost", porta_ns=9090):
     ghost_topo = config["ghost_topo_inicial"]
     ghost_base = config["ghost_base_inicial"]
     offset_global = config["offset_global"]
+    usar_midia = config["usar_midia"]
+    geracao_midia = config["geracao_midia"]
 
     mapa_raw = config["mapa_influenciadores"]
     mapa_influenciadores = None
@@ -30,6 +32,9 @@ def executar_worker(host_ns="localhost", porta_ns=9090):
             mapa_influenciadores=mapa_influenciadores,
             offset_global=offset_global,
         )
+
+        if usar_midia:
+            fatia = aplicar_midia(fatia, media_ativa=g >= geracao_midia)
 
         borda_topo = fatia[0]
         borda_base = fatia[-1]

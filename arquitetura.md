@@ -2,7 +2,6 @@
 
 ## 1. Visão Geral da Arquitetura
 
-
 A arquitetura adotada é o padrão **Mestre-Trabalhador (Master-Worker)** com topologia em estrela.
 A comunicação é realizada via **Pyro5 (Python Remote Objects)**, que abstrai a invocação de métodos remotos (RMI) sobre TCP. O Mestre é registrado como objeto remoto no Name Server do Pyro5, e os Workers obtêm um proxy para invocar seus métodos diretamente.
 
@@ -94,3 +93,7 @@ Para buscar a pontuação extra de inovações, a arquitetura permite as seguint
   - _Vizinhança Estendida:_ Quando um influenciador está no estado ESPALHADOR, seu raio de influência abrange um bloco 5×5 (até 24 vizinhos), ao invés da vizinhança de Moore padrão (3×3, 8 vizinhos).
   - _Transmissão Probabilística:_ A cada tentativa de conversão de um IGNORANTE dentro do bloco 5×5, a probabilidade é sorteada uniformemente entre 45% e 60%.
   - _Transporte Distribuído:_ O mapa de influenciadores é serializado como lista de tuplas e enviado pelo Mestre a cada Worker na fase `INIT` (`registrar_worker`). O Worker reconstrói o `set` localmente e o repassa a `calcular_geracao` junto com o `offset_global` da sua fatia.
+- **Efeito Mídia:**
+  - _Gatilho:_ A mídia começa a atuar a partir de uma geração configurável (`--geracao-midia`, padrão 5), sendo ativada individualmente por worker com base no número da geração — não requer sincronização global.
+  - _Funcionamento:_ Em cada geração posterior ao gatilho, **15% das células IGNORANTE** são alcançadas pela mídia. Destas, 8% de chance de se tornar ESPALHADOR (mídia sensacionalista que dissemina a fake news) e 92% de chance de se tornar INATIVO (mídia responsável que combate a desinformação).
+  - _Implementação:_ A lógica está na função `aplicar_midia(fatia, media_ativa, rng)` em `core/automato.py`, aplicada como pós-processamento após `calcular_geracao` em todas as versões (sequencial, paralela com threads e distribuída com Pyro5). A função recebe um gerador `rng` opcional para permitir reprodutibilidade.
