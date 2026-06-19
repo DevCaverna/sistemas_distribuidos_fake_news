@@ -16,7 +16,7 @@ class MestreDistribuido:
 
     def __init__(self, linhas, colunas, geracoes, percentual_espalhadores,
                  limiar, semente, num_workers, usar_influenciadores=True,
-                 usar_midia=True, geracao_midia=5):
+                 usar_midia=True, geracao_midia=5, prob_sensacionalista=0.08):
         self.linhas = linhas
         self.colunas = colunas
         self.geracoes = geracoes
@@ -33,6 +33,7 @@ class MestreDistribuido:
 
         self.usar_midia = usar_midia
         self.geracao_midia = geracao_midia
+        self.prob_sensacionalista = prob_sensacionalista
 
         self._workers_registrados = 0
         self._lock_registro = threading.Lock()
@@ -79,6 +80,7 @@ class MestreDistribuido:
                 "mapa_influenciadores": influenciadores_serializavel,
                 "usar_midia": self.usar_midia,
                 "geracao_midia": self.geracao_midia,
+                "prob_sensacionalista": self.prob_sensacionalista,
             }
 
             if self._workers_registrados == self.num_workers:

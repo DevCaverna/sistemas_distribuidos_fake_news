@@ -21,6 +21,7 @@ class MestreParalelo:
         usar_influenciadores=True,
         usar_midia=True,
         geracao_midia=5,
+        prob_sensacionalista=0.08,
     ):
         self.linhas = linhas
         self.colunas = colunas
@@ -29,6 +30,7 @@ class MestreParalelo:
         self.num_workers = num_workers
         self.usar_midia = usar_midia
         self.geracao_midia = geracao_midia
+        self.prob_sensacionalista = prob_sensacionalista
 
         self.matriz = criar_matriz(linhas, colunas, percentual_espalhadores, semente)
         self.fatias = fatiar_matriz(self.matriz, num_workers)
@@ -90,7 +92,8 @@ class MestreParalelo:
             )
 
             if self.usar_midia:
-                fatia = aplicar_midia(fatia, media_ativa=g >= self.geracao_midia)
+                fatia = aplicar_midia(fatia, media_ativa=g >= self.geracao_midia,
+                                        prob_sensacionalista=self.prob_sensacionalista)
 
             borda_topo = fatia[0]
             borda_base = fatia[-1]

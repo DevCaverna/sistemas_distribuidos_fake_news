@@ -25,6 +25,7 @@ def executar_sequencial(
     usar_influenciadores=True,
     usar_midia=True,
     geracao_midia=5,
+    prob_sensacionalista=0.08,
 ):
     """Executa a simulação sequencial completa usando o módulo core.
 
@@ -50,6 +51,9 @@ def executar_sequencial(
         Se ``True``, ativa o efeito da mídia.
     geracao_midia : int
         Geração a partir da qual a mídia começa a atuar (padrão: 5).
+    prob_sensacionalista : float
+        Probabilidade de a mídia disseminar fake news quando alcança
+        um IGNORANTE (padrão: 0.08 = 8%).
 
     Retorna
     -------
@@ -81,8 +85,10 @@ def executar_sequencial(
               f"(1% da população, vizinhança 5x5, prob. 45-60%)")
 
     if usar_midia:
+        pct_sens = prob_sensacionalista * 100
+        pct_combate = (1 - prob_sensacionalista) * 100
         print(f"  Mídia:         ativa a partir da geração {geracao_midia}"
-              f" (8% dissemina / 92% combate)")
+              f" ({pct_sens:.0f}% dissemina / {pct_combate:.0f}% combate)")
 
     print("=" * 60)
     print()
@@ -101,7 +107,8 @@ def executar_sequencial(
         )
 
         if usar_midia:
-            matriz = aplicar_midia(matriz, media_ativa=g >= geracao_midia)
+            matriz = aplicar_midia(matriz, media_ativa=g >= geracao_midia,
+                                   prob_sensacionalista=prob_sensacionalista)
 
         contagem = contar_estados(matriz)
         imprimir_estatisticas(contagem, geracao=g, total_celulas=total_celulas)
@@ -144,6 +151,7 @@ if __name__ == "__main__":
     parser.add_argument("--influenciadores", type=bool, default=True)
     parser.add_argument("--usar-midia", type=bool, default=True)
     parser.add_argument("--geracao-midia", type=int, default=5)
+    parser.add_argument("--prob-sensacionalista", type=float, default=0.08)
     args = parser.parse_args()
 
     executar_sequencial(
@@ -157,4 +165,5 @@ if __name__ == "__main__":
         usar_influenciadores=args.influenciadores,
         usar_midia=args.usar_midia,
         geracao_midia=args.geracao_midia,
+        prob_sensacionalista=args.prob_sensacionalista,
     )

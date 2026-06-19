@@ -17,6 +17,7 @@ def executar_worker(host_ns="localhost", porta_ns=9090):
     offset_global = config["offset_global"]
     usar_midia = config["usar_midia"]
     geracao_midia = config["geracao_midia"]
+    prob_sensacionalista = config["prob_sensacionalista"]
 
     mapa_raw = config["mapa_influenciadores"]
     mapa_influenciadores = None
@@ -34,7 +35,8 @@ def executar_worker(host_ns="localhost", porta_ns=9090):
         )
 
         if usar_midia:
-            fatia = aplicar_midia(fatia, media_ativa=g >= geracao_midia)
+            fatia = aplicar_midia(fatia, media_ativa=g >= geracao_midia,
+                                   prob_sensacionalista=prob_sensacionalista)
 
         borda_topo = fatia[0]
         borda_base = fatia[-1]
