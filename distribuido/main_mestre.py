@@ -20,6 +20,7 @@ def main():
     parser.add_argument("--workers", type=int, default=2)
     parser.add_argument("--host", type=str, default="0.0.0.0")
     parser.add_argument("--porta-ns", type=int, default=9090)
+    parser.add_argument("--influenciadores", type=bool, default=True)
     args = parser.parse_args()
 
     mestre = MestreDistribuido(
@@ -30,6 +31,7 @@ def main():
         limiar=args.limiar,
         semente=args.semente,
         num_workers=args.workers,
+        usar_influenciadores=args.influenciadores,
     )
 
     daemon = Pyro5.server.Daemon(host=args.host)
