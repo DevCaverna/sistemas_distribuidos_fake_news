@@ -2,44 +2,48 @@
 
 ## 1. Visão Geral da Arquitetura
 
+
 A arquitetura adotada é o padrão **Mestre-Trabalhador (Master-Worker)** com topologia em estrela.
 A comunicação é realizada via **Pyro5 (Python Remote Objects)**, que abstrai a invocação de métodos remotos (RMI) sobre TCP. O Mestre é registrado como objeto remoto no Name Server do Pyro5, e os Workers obtêm um proxy para invocar seus métodos diretamente.
 
 - **Linguagem:** Python 3.x
-- **Comunicação:** Pyro5 (RMI sobre TCP/IPv4)
-- **Serialização de Dados:** Serpent (padrão do Pyro5)
+- **Comunicação:** Pyro5 (RPC sobre TCP)
+- **Descoberta de Serviço:** Pyro5 Name Server (registro de objetos remotos)
+- **Serialização:** Pyro5 (interna, via serpent)
 
 ## 2. Estratégia de Particionamento (Decomposição 1D)
 
-A matriz bidimensional (população) será fatiada horizontalmente.
+A matriz bidimensional (população) é fatiada horizontalmente.
 
 - **Matriz Global:** `N` linhas x `M` colunas.
 - **Número de Workers:** `W`.
 - **Fatia por Worker:** Cada Worker recebe `N/W` linhas. Se a divisão não for exata, o último Worker absorve o resto.
-- **Células Fantasmas (Ghost Rows):** Cada fatia local terá 2 linhas extras alocadas em memória:
-  - `linha_fantasma_topo` (índice 0)
-  - `linhas_reais` (índices 1 a K)
-  - `linha_fantasma_base` (índice K+1)
+- **Células Fantasmas (Ghost Rows):** Em vez de alocar localmente, as ghost rows são enviadas pelo Mestre a cada geração. O Worker as recebe como parâmetro na chamada `calcular_geracao(fatia, borda_topo, borda_base)`.
 
-## 3. Componentes do Sistema e Classes
+## 3. Componentes do Sistema
 
-### 3.1. Nó Mestre (MasterNode)
+### 3.1. Serviço de Nomes (Pyro5 Name Server)
 
-Responsável pela orquestração, distribuição de carga e sincronização.
+Processo independente que atua como serviço de descoberta. O Mestre registra seu objeto remoto com um nome simbólico (`mestre.fakenews`), e os Workers o localizam através desse nome, sem precisar conhecer IP/porta do Mestre antecipadamente.
 
-**Responsabilidades:**
+Orquestrador central responsável por:
 
-1. Inicializar a matriz completa com o estado inicial (Ignorantes, Espalhadores e mapa de Influenciadores).
-2. Registrar-se como objeto remoto no Name Server do Pyro5 e aguardar a conexão de `W` Workers.
-3. Fatiar a matriz e fornecer a cada Worker sua respectiva parte via `registrar_worker()`.
-4. **Sincronizador de Geração (Barreira):** A cada geração, receber as fronteiras atualizadas dos Workers e repassá-las cruzadas (a base do Worker 1 vai para o topo do Worker 2, etc.).
-5. Recolher as submatrizes no final, remontar a matriz global e calcular o tempo total (para o Speedup).
+1. Inicializar a matriz completa com o estado inicial (Ignorantes e Espalhadores).
+2. Fatiar a matriz horizontalmente em `W` partes.
+3. Registrar-se no Name Server e expor um objeto remoto via Pyro5.
+4. Aguardar que todos os `W` Workers se registrem (`registrar_worker`). Cada registro retorna a fatia inicial e as ghost rows iniciais.
+5. **Sincronizador de Geração (Barreira):** A cada geração:
+   - Receber as bordas superior e inferior de cada Worker (`enviar_bordas`).
+   - Quando todos os `W` Workers tiverem enviado, cruzar os dados (a base do Worker X vira ghost_topo do Worker X+1, e o topo do Worker X vira ghost_base do Worker X-1).
+   - Liberar os Workers para buscar as ghost rows calculadas (`obter_ghosts`).
+   - Se não houver mais espalhadores, sinalizar `terminar = True` para todos.
+6. Receber as submatrizes finais (`enviar_resultado`), remontar a matriz global e calcular o tempo total.
 
-### 3.2. Nó Trabalhador (WorkerNode)
+### 3.3. Nó Trabalhador (`executar_worker`)
 
 Processo isolado (pode rodar em terminais ou máquinas diferentes) que processa as regras do autômato celular.
 
-**Responsabilidades:**
+**Fluxo:**
 
 1. Obter um proxy do Mestre via Pyro5 Name Server.
 2. Registrar-se e receber sua submatriz, ghost rows iniciais, mapa de influenciadores e offset global.
@@ -57,26 +61,28 @@ A comunicação é realizada via invocação de métodos remotos. O Mestre expõ
 - `obter_ghosts(worker_id, geracao)` → Worker recebe ghost rows cruzadas dos vizinhos.
 - `enviar_resultado(worker_id, fatia_final)` → Worker envia submatriz final processada.
 
-## 5. Fluxo de Execução Passo a Passo (Garantia de Consistência)
+1. Iniciar o **Pyro5 Name Server** (`python3 -m Pyro5.nameserver`).
+2. Iniciar o **Mestre** — ele cria a matriz, fatia, e se registra no Name Server.
+3. Iniciar os **Workers** (um ou mais processos/terminais) — cada um se conecta ao Name Server, obtém o proxy do Mestre e chama `registrar_worker()`.
 
-A consistência de estado é o ponto mais crítico. Para resolver isso, usamos a técnica de **Double Buffering** no Worker e uma **Barreira Global** no Mestre.
+### Por Geração
 
-**Fluxo por Geração G:**
+1. **Cálculo Local:** O Worker executa `calcular_geracao` com sua fatia e ghost rows recebidas.
+2. **Envio de Fronteiras:** O Worker envia sua primeira e última linha real para o Mestre (`enviar_bordas`).
+3. **Barreira no Mestre:** O Mestre bloqueia até receber bordas de todos os Workers para a geração G.
+4. **Roteamento:** O Mestre cruza os dados: a base do Worker X vira ghost_topo do Worker X+1; o topo do Worker X vira ghost_base do Worker X-1. Se não houver mais espalhadores, marca `terminar = True`.
+5. **Coleta de Ghosts:** O Worker chama `obter_ghosts` e recebe as ghost rows atualizadas (ou sinal de término).
+6. **Avanço:** Geração G termina. Inicia-se G+1.
 
-1. **Cálculo Local:** O Worker executa `calcular_geracao()` sobre sua fatia, recebendo as ghost rows atuais e o mapa de influenciadores.
-2. **Envio de Fronteiras:** O Worker envia a primeira e última linha da fatia calculada via `enviar_bordas()`.
-3. **Barreira no Mestre:** O Mestre bloqueia (via `threading.Condition`). Ele só libera quando recebe bordas de todos os Workers para a geração G.
-4. **Roteamento:** O Mestre cruza os dados e disponibiliza via `obter_ghosts()`.
-5. **Atualização de Fantasmas:** O Worker recebe as novas ghost rows.
-6. **Avanço:** A geração G termina. Inicia-se G+1.
+### Finalização
+
+1. Workers enviam suas fatias finais via `enviar_resultado`.
+2. Mestre remonta a matriz global, exibe estatísticas e tempo total.
 
 ## 6. Coleta de Métricas (Requisitos de Avaliação)
 
-Para garantir os gráficos e análises pedidos no trabalho, o código deverá instanciar contadores:
-
-- **Tempo Total de Processamento:** `time.perf_counter()` no Mestre (antes de dividir a carga até receber todos os resultados).
-- **Custo de Comunicação:** O Mestre deve possuir uma variável `bytes_trafegados` que incrementa baseado no tamanho (em bytes) de cada pacote recebido/enviado (`sys.getsizeof()` no payload).
-- **Tempo de Sincronização:** Medir quanto tempo o sistema fica ocioso esperando o pacote mais lento na Barreira Global.
+- **Tempo Total de Processamento:** `time.perf_counter()` no Mestre (antes de `aguardar_workers` até após `aguardar_resultado`).
+- **Custo de Comunicação:** O Mestre incrementa `bytes_trafegados` com `sys.getsizeof()` dos dados de borda trafegados a cada chamada de `enviar_bordas` e `obter_ghosts`.
 
 ## 7. Estratégia para Melhorias (Diferencial / Inovação)
 

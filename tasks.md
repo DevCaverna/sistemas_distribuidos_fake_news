@@ -20,26 +20,26 @@ Esta ramificação bloqueia as Ramificações B e C. Deve ser a primeira a ser f
 
 Pode iniciar assim que a Ramificação A estiver concluída.
 
-- [ ] **Task B.1: Lógica de Divisão (Fatiamento)**
+- [x] **Task B.1: Lógica de Divisão (Fatiamento)**
   - **Ação:** Criar a função no Master que calcula os índices de divisão da matriz bidimensional em N fatias.
-- [ ] **Task B.2: Código do Node Paralelo**
+- [x] **Task B.2: Código do Node Paralelo**
   - **Ação:** Criar o código do trabalhador local. Ele deve importar a lógica do core, receber sua fatia de matriz, e calcular a próxima geração considerando sincronização de memória com o Master (usando buffers ou passagem de argumentos).
-- [ ] **Task B.3: Entry Point - Master Paralelo**
+- [x] **Task B.3: Entry Point - Master Paralelo**
   - **Ação:** Criar o `main_paralelo.py`. Este script irá instanciar o código do Node N vezes (utilizando `multiprocessing`, `subprocess` ou `threading`), repassar as fatias, aguardar o processamento de cada geração e remontar a matriz final.
-- [ ] **Task B.4: Validação do Paralelo**
+- [x] **Task B.4: Validação do Paralelo**
   - **Ação:** Rodar o `main_paralelo.py` e comparar a saída final com a saída do código sequencial original para garantir que não há condições de corrida (_race conditions_).
 
 ## 🌿 Ramificação C: Implementação Distribuída (Master + Nodes via Rede)
 
 Pode iniciar assim que a Ramificação A estiver concluída. Pode compartilhar lógicas de fatiamento da Ramificação B.
 
-- [ ] **Task C.1: Protocolo de Comunicação TCP**
+- [x] **Task C.1: Protocolo de Comunicação TCP**
   - **Ação:** Criar no `/core/rede.py` funções genéricas para envio/recebimento de matrizes via Sockets (usando `pickle` ou `json` com cabeçalho indicando o tamanho do pacote).
-- [ ] **Task C.2: Entry Point - Node Distribuído (Worker)**
+- [x] **Task C.2: Entry Point - Node Distribuído (Worker)**
   - **Ação:** Criar o `main_node_dist.py`. Este script se conecta via Socket a um IP/Porta, recebe sua submatriz, processa a geração atual usando o `/core/automato.py`, envia as bordas atualizadas (_ghost cells_) e aguarda o próximo passo.
-- [ ] **Task C.3: Entry Point - Master Distribuído**
+- [x] **Task C.3: Entry Point - Master Distribuído**
   - **Ação:** Criar o `main_mestre_dist.py`. Ele atua como servidor, aguarda a conexão de N instâncias do `main_node_dist.py`, divide a matriz, envia a carga inicial e orquestra a troca de fronteiras a cada nova geração (barreira de rede).
-- [ ] **Task C.4: Validação do Distribuído**
+- [x] **Task C.4: Validação do Distribuído**
   - **Ação:** Rodar o Mestre e múltiplos Nodes em terminais diferentes (ou máquinas diferentes via IP). Verificar se a saída final bate com a versão sequencial.
 
 ## 🌿 Ramificação D: Automação, Métricas e Testes
