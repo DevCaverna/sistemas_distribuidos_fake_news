@@ -58,8 +58,9 @@ def _contar_vizinhos_espalhadores(matriz, i, j, num_linhas, num_colunas):
     return total
 
 
-def _tem_influenciador_espalhador_5x5(matriz, i, j, num_linhas, num_colunas,
-                                       mapa_influenciadores, offset_global):
+def _tem_influenciador_espalhador_5x5(
+    matriz, i, j, num_linhas, num_colunas, mapa_influenciadores, offset_global
+):
     for di in range(-2, 3):
         for dj in range(-2, 3):
             if di == 0 and dj == 0:
@@ -73,8 +74,14 @@ def _tem_influenciador_espalhador_5x5(matriz, i, j, num_linhas, num_colunas,
     return False
 
 
-def calcular_geracao(fatia, borda_topo=None, borda_base=None, limiar=2,
-                     mapa_influenciadores=None, offset_global=0):
+def calcular_geracao(
+    fatia,
+    borda_topo=None,
+    borda_base=None,
+    limiar=2,
+    mapa_influenciadores=None,
+    offset_global=0,
+):
     """Calcula a próxima geração do autômato para uma fatia da matriz.
 
     Esta função é **pura**: não altera a fatia original. Ela constrói uma
@@ -130,19 +137,28 @@ def calcular_geracao(fatia, borda_topo=None, borda_base=None, limiar=2,
 
             if estado_atual == IGNORANTE:
                 vizinhos = _contar_vizinhos_espalhadores(
-                    matriz_leitura, idx_leitura, j,
-                    total_linhas_leitura, num_colunas,
+                    matriz_leitura,
+                    idx_leitura,
+                    j,
+                    total_linhas_leitura,
+                    num_colunas,
                 )
 
                 if vizinhos >= limiar:
                     nova_linha.append(ESPALHADOR)
 
                 elif mapa_influenciadores and _tem_influenciador_espalhador_5x5(
-                    matriz_leitura, idx_leitura, j,
-                    total_linhas_leitura, num_colunas,
-                    mapa_influenciadores, offset_leitura_para_global,
+                    matriz_leitura,
+                    idx_leitura,
+                    j,
+                    total_linhas_leitura,
+                    num_colunas,
+                    mapa_influenciadores,
+                    offset_leitura_para_global,
                 ):
-                    prob = random.uniform(INFLUENCIADOR_PROB_MIN, INFLUENCIADOR_PROB_MAX)
+                    prob = random.uniform(
+                        INFLUENCIADOR_PROB_MIN, INFLUENCIADOR_PROB_MAX
+                    )
                     if random.random() < prob:
                         nova_linha.append(ESPALHADOR)
                     else:
@@ -158,6 +174,55 @@ def calcular_geracao(fatia, borda_topo=None, borda_base=None, limiar=2,
 
         nova_fatia.append(nova_linha)
 
+    return nova_fatia
+
+
+def aplicar_midia(fatia, media_ativa, rng=random, chance_alcance=0.15,
+                  prob_sensacionalista=0.08):
+    """Aplica o efeito da mídia sobre uma fatia da população.
+
+    Quando a mídia está ativa, cada célula IGNORANTE pode ser alcançada
+    pela mídia com probabilidade ``chance_alcance``. Se alcançada:
+      - ``prob_sensacionalista * 100%`` de chance de se tornar ESPALHADOR
+        (mídia dissemina fake news)
+      - ``(1 - prob_sensacionalista) * 100%`` de chance de se tornar INATIVO
+        (mídia combate fake news)
+
+    Parâmetros
+    ----------
+    fatia : list[list[int]]
+        Submatriz com as células já actualizadas pela geração atual.
+    media_ativa : bool
+        Se ``False``, a fatia é retornada sem alterações.
+    rng : random.Random, opcional
+        Gerador de números aleatórios (padrão: módulo ``random``).
+    chance_alcance : float
+        Probabilidade de uma célula IGNORANTE ser alcançada pela mídia
+        em uma dada geração (padrão: 0.15 = 15%).
+    prob_sensacionalista : float
+        Probabilidade de a mídia disseminar fake news quando alcança
+        uma célula IGNORANTE (padrão: 0.08 = 8%).
+
+    Retorna
+    -------
+    list[list[int]]
+        Fatia com os efeitos da mídia aplicados.
+    """
+    if not media_ativa:
+        return fatia
+
+    nova_fatia = []
+    for linha in fatia:
+        nova_linha = []
+        for celula in linha:
+            if celula == IGNORANTE and rng.random() < chance_alcance:
+                if rng.random() < prob_sensacionalista:
+                    nova_linha.append(ESPALHADOR)
+                else:
+                    nova_linha.append(INATIVO)
+            else:
+                nova_linha.append(celula)
+        nova_fatia.append(nova_linha)
     return nova_fatia
 
 

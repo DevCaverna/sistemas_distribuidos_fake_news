@@ -21,6 +21,9 @@ def main():
     parser.add_argument("--host", type=str, default="0.0.0.0")
     parser.add_argument("--porta-ns", type=int, default=9090)
     parser.add_argument("--influenciadores", type=bool, default=True)
+    parser.add_argument("--usar-midia", type=bool, default=True)
+    parser.add_argument("--geracao-midia", type=int, default=5)
+    parser.add_argument("--prob-sensacionalista", type=float, default=0.08)
     args = parser.parse_args()
 
     mestre = MestreDistribuido(
@@ -32,6 +35,9 @@ def main():
         semente=args.semente,
         num_workers=args.workers,
         usar_influenciadores=args.influenciadores,
+        usar_midia=args.usar_midia,
+        geracao_midia=args.geracao_midia,
+        prob_sensacionalista=args.prob_sensacionalista,
     )
 
     daemon = Pyro5.server.Daemon(host=args.host)
