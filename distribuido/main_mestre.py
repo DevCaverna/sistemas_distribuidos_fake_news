@@ -5,6 +5,7 @@ import Pyro5.api
 import Pyro5.server
 
 from core.automato import contar_estados, IGNORANTE, ESPALHADOR, INATIVO
+from core.metricas import RelatorioMetricas
 from core.utils import Cronometro
 from distribuido.mestre import MestreDistribuido
 
@@ -57,6 +58,21 @@ def main():
     print(f"Ignorantes: {contagem[IGNORANTE]} ({contagem[IGNORANTE]/total*100:.2f}%)")
     print(f"Espalhadores: {contagem[ESPALHADOR]} ({contagem[ESPALHADOR]/total*100:.2f}%)")
     print(f"Inativos: {contagem[INATIVO]} ({contagem[INATIVO]/total*100:.2f}%)")
+
+    metricas_raw = mestre.aguardar_metricas()
+    relatorio = RelatorioMetricas(args.workers)
+
+    for metricas_worker in metricas_raw:
+        relatorio.adicionar_metricas_worker(metricas_worker)
+
+    relatorio.imprimir_resumo(crono.elapsed)
+
+    caminho_csv = relatorio.exportar_csv()
+    print(f"\n  CSV exportado: {caminho_csv}")
+
+    graficos = relatorio.gerar_graficos()
+    for g in graficos:
+        print(f"  Gráfico gerado: {g}")
 
     try:
         ns.remove("mestre.fakenews")

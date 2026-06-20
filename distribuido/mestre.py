@@ -38,6 +38,10 @@ class MestreDistribuido:
         self._lock_resultado = threading.Lock()
         self._evento_resultado = threading.Event()
 
+        self._metricas_workers = [None] * num_workers
+        self._lock_metricas = threading.Lock()
+        self._evento_metricas = threading.Event()
+
         self.bytes_trafegados = 0
         self._lock_bytes = threading.Lock()
 
@@ -132,3 +136,13 @@ class MestreDistribuido:
 
     def obter_matriz_final(self):
         return remontar_matriz(self._fatias_finais)
+
+    def enviar_metricas(self, worker_id, metricas):
+        with self._lock_metricas:
+            self._metricas_workers[worker_id] = metricas
+            if all(m is not None for m in self._metricas_workers):
+                self._evento_metricas.set()
+
+    def aguardar_metricas(self):
+        self._evento_metricas.wait()
+        return self._metricas_workers

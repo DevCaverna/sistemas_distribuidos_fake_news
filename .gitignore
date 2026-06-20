@@ -26,3 +26,4 @@ ENV/
 
 # Experiment results (Opcional - caso queira ignorar relatórios locais)
 *.csv
+metricas/
