@@ -108,6 +108,89 @@ python3 -m paralelo.main_paralelo --linhas 100 --colunas 100 --geracoes 50 --wor
 
 Parâmetros são os mesmos da versão distribuída (`--linhas`, `--colunas`, `--geracoes`, `--workers`, etc.).
 
+## Testes
+
+### Configuração do ambiente
+
+Os testes usam um ambiente virtual Python (`venv`) para isolar as dependências:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install pytest Pyro5==5.16
+```
+
+### pytest
+
+O **pytest** é o framework de testes usado no projeto. Ele descobre automaticamente arquivos `test_*.py`, executa cada função/método de teste e reporta o resultado. Testes são organizados em classes para agrupar comportamentos relacionados.
+
+**Comandos:**
+
+```bash
+# Rodar todos os testes
+pytest tests/ -v -m "not distribuido"
+
+# Rodar apenas um arquivo
+pytest tests/test_core_automato.py -v
+
+# Rodar apenas um teste específico
+pytest tests/test_core_automato.py::TestCalcularGeracao::test_ghost_rows_influenciam_borda_topo -v
+
+# Rodar com relatório de cobertura de código
+pytest tests/ -v -m "not distribuido" --cov=. --cov-report=term-missing
+```
+
+> Testes marcados com `@pytest.mark.distribuido` requerem o nameserver Pyro5 rodando e são excluídos por padrão com `-m "not distribuido"`.
+
+### mutmut — teste de mutação
+
+O **mutmut** verifica se os testes são realmente eficazes. Ele modifica o código fonte artificialmente (ex: troca `>=` por `>`, inverte condições) e roda os testes. Se os testes **falham** com a modificação, o mutante foi **morto** — os testes detectaram o bug. Se os testes **passam mesmo com o bug**, o mutante **sobreviveu** — indicando ponto fraco na suíte.
+
+```bash
+pip install mutmut
+
+# Rodar mutação no módulo core/
+mutmut run
+
+# Ver resumo dos resultados
+mutmut results
+
+# Ver o detalhe de um mutante específico
+mutmut show <ID>
+```
+
+**Resultado obtido:** 262 mortos / 16 sobreviveram (94% de detecção) em 278 mutantes gerados.
+
+---
+
+### Estrutura dos testes
+
+```
+tests/
+├── conftest.py              # fixtures compartilhadas (matrizes, mapas)
+├── test_core_automato.py    # testes de core/automato.py
+├── test_core_utils.py       # testes de core/utils.py
+├── test_sequencial.py       # testes de main_sequencial.py
+├── test_paralelo.py         # testes de paralelo/mestre.py
+└── test_distribuido.py      # testes de distribuido/mestre.py e worker.py
+```
+
+### Como cada módulo foi testado
+
+**`core/automato.py`** — funções puras testadas com matrizes pequenas construídas manualmente (1×1, 1×3, 3×3). Cada teste verifica uma única regra de transição: ESPALHADOR→INATIVO, IGNORANTE com vizinhos suficientes→ESPALHADOR, ghost rows afetando bordas, pureza da função (entrada não mutada).
+
+**`core/utils.py`** — verificação de propriedades matemáticas: dimensões corretas, identidade fatiar→remontar, determinismo com mesma semente, comportamento do cronômetro. Funções de impressão recebem smoke tests (só verifica que não levantam exceção).
+
+**`main_sequencial.py`** — testa o contrato da função: retorna tupla `(matriz, tempo)`, dimensões corretas, tempo positivo, determinismo com mesma semente, parada antecipada sem espalhadores.
+
+**`paralelo/mestre.py`** — `MestreParalelo` usa threads no mesmo processo e pode ser testado diretamente. Com 1 worker (sem ghost rows) o resultado é idêntico ao sequencial. Com 2+ workers verifica shape, estados válidos e determinismo.
+
+**`distribuido/mestre.py`** — testado sem Pyro5: métodos internos (`_calcular_ghosts`, `obter_matriz_final`, `registrar_worker`) são chamados diretamente, manipulando o estado interno da classe para verificar o cruzamento de bordas e o reassembly da matriz.
+
+**`distribuido/worker.py`** — testado com `unittest.mock.patch` para substituir `Pyro5.api.Proxy` por um `MagicMock`. O mock controla as respostas do "mestre remoto" sem nenhuma conexão de rede, verificando: URI correta, protocolo de registro, contagem de chamadas por geração, parada antecipada com `terminar=True`, e deserialização do mapa de influenciadores de lista→set.
+
+---
+
 ## Melhorias em Relação ao Modelo Base
 
 ### Influenciadores Digitais
@@ -144,3 +227,4 @@ Flags: `--usar-midia` (default `True`), `--geracao-midia` (default `5`), `--prob
 - [Enunciado do Trabalho](enunciado.md)
 - [Arquitetura do Sistema Distribuído](arquitetura.md)
 - [Divisão de Tarefas (Roadmap)](tasks.md)
+- [Relatório Completo de Testes](RELATORIO_TESTES.md)
