@@ -17,7 +17,6 @@ ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
 METRICAS_DIR = "metricas"
-MAX_IMG_WIDTH = 700
 
 CORES_ESTADOS = {
     0: (46, 204, 113),
@@ -232,7 +231,8 @@ class FakeNewsApp(ctk.CTk):
             self.scroll_metricas, fg_color="transparent"
         )
         self.container_graficos.pack(fill="both", expand=True)
-        self.container_graficos.grid_columnconfigure(0, weight=1)
+        for col in range(2):
+            self.container_graficos.grid_columnconfigure(col, weight=1)
 
     def mostrar_boas_vindas(self):
         print("=" * 60)
@@ -310,27 +310,100 @@ class FakeNewsApp(ctk.CTk):
                     text=f"Dist: {t_dist:.4f} s", text_color="white"
                 )
 
-    def _exibir_imagem_grafico(self, caminho):
-        """Carrega um PNG e exibe como CTkImage no container."""
+    def _exibir_imagem_grafico(self, caminho, idx=0):
+        """Carrega PNG em FigureCanvasTkAgg — mantem aspect ratio ao redimensionar."""
         try:
-            from PIL import Image
-            pil_img = Image.open(caminho)
+            import matplotlib.pyplot as plt
+            from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-            ratio = pil_img.width / pil_img.height
-            display_width = min(MAX_IMG_WIDTH, pil_img.width)
-            display_height = int(display_width / ratio)
+            img = plt.imread(caminho)
+            h, w = img.shape[:2]
+            ratio = h / w
 
-            pil_img = pil_img.resize((display_width, display_height), Image.LANCZOS)
-            ctk_img = ctk.CTkImage(light_image=pil_img, dark_image=pil_img,
-                                   size=(display_width, display_height))
-            label = ctk.CTkLabel(self.container_graficos, image=ctk_img, text="")
-            label.pack(pady=10)
+            fig = plt.Figure(figsize=(5, 5 * ratio), dpi=100, facecolor="none")
+            ax = fig.add_subplot(111)
+            ax.imshow(img, aspect="equal")
+            ax.axis("off")
+            fig.subplots_adjust(0, 0, 1, 1)
+
+            col = idx % 2
+            row = idx // 2
+            figura_ref = {"fig": fig, "ratio": ratio}
+
+            canvas = FigureCanvasTkAgg(fig, self.container_graficos)
+            canvas.draw()
+            widget = canvas.get_tk_widget()
+
+            def _ajustar(e=None):
+                larg = widget.winfo_width()
+                if larg > 10:
+                    alt = int(larg * figura_ref["ratio"])
+                    if widget.winfo_height() != alt:
+                        widget.configure(height=alt)
+                    fig.set_size_inches(larg / fig.dpi, alt / fig.dpi)
+                    canvas.draw()
+
+            widget.grid(row=row, column=col, padx=6, pady=6, sticky="ew")
+            widget.bind("<Configure>", _ajustar, add="+")
+            self.after_idle(_ajustar)
+
+            caminho_abs = os.path.abspath(caminho)
+            widget.bind(
+                "<Button-1>",
+                lambda e, p=caminho_abs: self._abrir_imagem_tela_cheia(p),
+            )
+
+            if not hasattr(self, "_figuras"):
+                self._figuras = []
+            self._figuras.append(fig)
         except Exception as e:
             print(f"[Aviso] Nao foi possivel exibir {caminho}: {e}")
+
+    def _abrir_imagem_tela_cheia(self, caminho):
+        try:
+            from PIL import Image
+            janela = ctk.CTkToplevel(self)
+            janela.title(os.path.basename(caminho))
+            janela.attributes("-fullscreen", True)
+
+            pil_img = Image.open(caminho)
+            largura_tela = janela.winfo_screenwidth()
+            altura_tela = janela.winfo_screenheight()
+            margem = 60
+            max_larg = largura_tela - margem
+            max_alt = altura_tela - margem
+            ratio = pil_img.width / pil_img.height
+            if pil_img.width > max_larg or pil_img.height > max_alt:
+                if max_larg / ratio <= max_alt:
+                    display_w = max_larg
+                    display_h = int(max_larg / ratio)
+                else:
+                    display_h = max_alt
+                    display_w = int(max_alt * ratio)
+            else:
+                display_w = pil_img.width
+                display_h = pil_img.height
+            pil_red = pil_img.resize((display_w, display_h), Image.LANCZOS)
+            ctk_img = ctk.CTkImage(light_image=pil_red, dark_image=pil_red,
+                                   size=(display_w, display_h))
+            label = ctk.CTkLabel(janela, image=ctk_img, text="")
+            label.pack(expand=True, fill="both")
+            def fechar(e=None):
+                janela.attributes("-fullscreen", False)
+                janela.destroy()
+            label.bind("<Button-1>", fechar)
+            janela.bind("<Escape>", fechar)
+        except Exception as e:
+            print(f"[Aviso] Erro ao expandir imagem: {e}")
 
     def limpar_graficos(self):
         for widget in self.container_graficos.winfo_children():
             widget.destroy()
+        if hasattr(self, "_figuras"):
+            import matplotlib.pyplot as plt
+            for fig in self._figuras:
+                plt.close(fig)
+            self._figuras.clear()
         self.lbl_placeholder_metricas.pack_forget()
 
     def _iniciar_leitor_stderr(self, proc, prefixo):
@@ -361,7 +434,7 @@ class FakeNewsApp(ctk.CTk):
             text="Graficos de Telemetria",
             font=ctk.CTkFont(size=18, weight="bold"),
             text_color="#2ecc71",
-        ).pack(pady=(30, 5))
+        ).grid(row=0, column=0, columnspan=2, pady=(30, 10))
 
         padrao = [
             "gargalos_rede_vs_cpu.png",
@@ -375,13 +448,13 @@ class FakeNewsApp(ctk.CTk):
         for nome in padrao:
             caminho = os.path.join(METRICAS_DIR, nome)
             if os.path.exists(caminho):
-                self._exibir_imagem_grafico(caminho)
+                self._exibir_imagem_grafico(caminho, idx=len(exibidos))
                 exibidos.append(caminho)
 
         if caminhos_adicionais:
             for caminho in caminhos_adicionais:
                 if caminho and os.path.exists(caminho) and caminho not in exibidos:
-                    self._exibir_imagem_grafico(caminho)
+                    self._exibir_imagem_grafico(caminho, idx=len(exibidos))
                     exibidos.append(caminho)
 
         if not exibidos:
@@ -435,9 +508,9 @@ class FakeNewsApp(ctk.CTk):
             registrar_resultado("Sequencial", tempo_total, cpu_medio)
 
             self.after(0, self.atualizar_speedup, "Sequencial", tempo_total)
-            self.after(0, self.carregar_graficos_telemetria, caminhos)
             self.after(0, self._tentar_exibir_comparativo)
             self.after(0, lambda: self.tabs.set("Metricas e Telemetria"))
+            self.after(50, lambda: self.carregar_graficos_telemetria(caminhos))
 
         except Exception as e:
             print(f"\n[ERRO SEQUENCIAL]: {e}")
@@ -502,9 +575,9 @@ class FakeNewsApp(ctk.CTk):
                                 rede_bytes=mestre.bytes_trafegados)
 
             self.after(0, self.atualizar_speedup, "Paralela", crono.elapsed)
-            self.after(0, self.carregar_graficos_telemetria, caminhos)
             self.after(0, self._tentar_exibir_comparativo)
             self.after(0, lambda: self.tabs.set("Metricas e Telemetria"))
+            self.after(50, lambda: self.carregar_graficos_telemetria(caminhos))
 
         except Exception as e:
             print(f"\n[ERRO PARALELO]: {e}")
@@ -622,9 +695,9 @@ class FakeNewsApp(ctk.CTk):
                                 rede_bytes=mestre.bytes_trafegados)
 
             self.after(0, self.atualizar_speedup, "Distribuida", crono.elapsed)
-            self.after(0, self.carregar_graficos_telemetria, caminhos)
             self.after(0, self._tentar_exibir_comparativo)
             self.after(0, lambda: self.tabs.set("Metricas e Telemetria"))
+            self.after(50, lambda: self.carregar_graficos_telemetria(caminhos))
 
         except Exception as e:
             print(f"\n[ERRO DISTRIBUÍDO]: {e}")
