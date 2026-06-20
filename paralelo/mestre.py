@@ -1,7 +1,18 @@
+"""
+paralelo/mestre.py — Mestre para a versao paralela (threads).
+
+Coordena N threads worker que processam fatias da matriz em paralelo,
+sincronizando a troca de bordas (ghost rows) via barreira com Condition.
+"""
+
 import sys
 import threading
 
-from core.utils import criar_matriz, fatiar_matriz, remontar_matriz
+from core.metricas import MetricasWorker
+from core.utils import (
+    criar_matriz, criar_mapa_influenciadores,
+    fatiar_matriz, remontar_matriz, calcular_offsets,
+)
 
 
 class MestreParalelo:
@@ -21,6 +32,7 @@ class MestreParalelo:
         limiar,
         semente,
         num_workers,
+        usar_influenciadores=True,
     ):
         self.linhas = linhas
         self.colunas = colunas
@@ -30,6 +42,11 @@ class MestreParalelo:
 
         self.matriz = criar_matriz(linhas, colunas, percentual_espalhadores, semente)
         self.fatias = fatiar_matriz(self.matriz, num_workers)
+        self._offsets = calcular_offsets(linhas, num_workers)
+
+        self.mapa_influenciadores = None
+        if usar_influenciadores:
+            self.mapa_influenciadores = criar_mapa_influenciadores(linhas, colunas)
 
         # sincronização da barreira
         self._cond = threading.Condition()
@@ -46,6 +63,10 @@ class MestreParalelo:
         self._evento_resultado = threading.Event()
 
         # métricas
+        self._metricas_workers = [None] * num_workers
+        self._lock_metricas = threading.Lock()
+        self._evento_metricas = threading.Event()
+
         self.bytes_trafegados = 0
         self._lock_bytes = threading.Lock()
 
@@ -65,16 +86,27 @@ class MestreParalelo:
         return threads
 
     def _worker_thread(self, worker_id, fatia, geracoes, limiar):
-        # Lazy import to keep module-level dependencies small
-        from core.automato import ESPALHADOR, calcular_geracao, contar_estados
+        from core.automato import (
+            ESPALHADOR, calcular_geracao, contar_estados,
+        )
 
+        offset_global = self._offsets[worker_id]
         ghost_topo = None
         ghost_base = None
 
+        metricas = MetricasWorker(worker_id)
+
         for g in range(1, geracoes + 1):
+            metricas.iniciar_processamento()
             fatia = calcular_geracao(
-                fatia, borda_topo=ghost_topo, borda_base=ghost_base, limiar=limiar
+                fatia,
+                borda_topo=ghost_topo,
+                borda_base=ghost_base,
+                limiar=limiar,
+                mapa_influenciadores=self.mapa_influenciadores,
+                offset_global=offset_global,
             )
+            metricas.finalizar_processamento()
 
             borda_topo = fatia[0]
             borda_base = fatia[-1]
@@ -82,11 +114,11 @@ class MestreParalelo:
             contagem = contar_estados(fatia)
             espalhadores = contagem[ESPALHADOR]
 
-            # enviar bordas para o mestre (síncrono local)
+            metricas.iniciar_comunicacao()
             self.enviar_bordas(worker_id, g, borda_topo, borda_base, espalhadores)
 
-            # obter ghosts (bloqueante até mestre calcular)
             resposta = self.obter_ghosts(worker_id, g)
+            metricas.finalizar_comunicacao()
 
             ghost_topo = resposta["ghost_topo"]
             ghost_base = resposta["ghost_base"]
@@ -94,8 +126,17 @@ class MestreParalelo:
             if resposta.get("terminar"):
                 break
 
-        # enviar resultado final
+        self._metricas_workers[worker_id] = metricas
+        with self._lock_metricas:
+            self._metricas_workers[worker_id] = metricas
+            if all(m is not None for m in self._metricas_workers):
+                self._evento_metricas.set()
+
         self.enviar_resultado(worker_id, fatia)
+
+    def aguardar_metricas(self):
+        self._evento_metricas.wait()
+        return [m.exportar() for m in self._metricas_workers]
 
     # --- API usada pelos workers (métodos sincronizados) -----------------
     def enviar_bordas(
@@ -115,7 +156,6 @@ class MestreParalelo:
                 if sum(self._esp_por_worker.values()) == 0:
                     self._terminar = True
 
-                # marca a geração pronta e libera leitores
                 self._geracao_pronta = geracao
                 self._leitores = self.num_workers
                 self._cond.notify_all()
@@ -136,11 +176,9 @@ class MestreParalelo:
             self._leitores -= 1
 
             if self._leitores == 0:
-                # limpar mapas para próxima geração
                 self._bordas.clear()
                 self._esp_por_worker.clear()
                 self._ghosts.clear()
-                # permitir que quem bloqueou em enviar_bordas siga
                 self._cond.notify_all()
 
             return {

@@ -1,3 +1,10 @@
+"""
+distribuido/mestre.py — Orquestrador remoto (Mestre) para a versao distribuida.
+
+Expõe um objeto Pyro5 que coordena N workers remotos, gerencia a troca de
+bordas (ghost rows) entre geracoes e coleta metricas de telemetria.
+"""
+
 import sys
 import threading
 
@@ -13,6 +20,12 @@ from core.utils import (
 
 @Pyro5.api.expose
 class MestreDistribuido:
+    """Orquestrador remoto da simulacao distribuida.
+
+    Registra-se no Pyro5 NameServer, aguarda a conexao de N workers,
+    coordena a troca de bordas a cada geracao (barreira de rede) e
+    coleta metricas de todos os workers ao final.
+    """
 
     def __init__(self, linhas, colunas, geracoes, percentual_espalhadores,
                  limiar, semente, num_workers, usar_influenciadores=True):
@@ -54,6 +67,12 @@ class MestreDistribuido:
         self._lock_bytes = threading.Lock()
 
     def registrar_worker(self):
+        """Registra um worker remoto, atribui um ID e retorna a configuracao.
+
+        Retorna um dicionario com: worker_id, fatia, geracoes, limiar,
+        ghost_topo_inicial, ghost_base_inicial, offset_global,
+        mapa_influenciadores, num_workers.
+        """
         with self._lock_registro:
             wid = self._workers_registrados
             self._workers_registrados += 1
@@ -85,10 +104,12 @@ class MestreDistribuido:
             return config
 
     def aguardar_workers(self):
+        """Bloqueia ate que todos os workers tenham se registrado."""
         self._evento_todos.wait()
 
     def enviar_bordas(self, worker_id, geracao, borda_topo, borda_base,
                       contagem_espalhadores):
+        """Recebe bordas de um worker e, quando todos enviaram, computa ghosts."""
         tamanho = sys.getsizeof(borda_topo) + sys.getsizeof(borda_base)
         with self._lock_bytes:
             self.bytes_trafegados += tamanho
@@ -108,6 +129,7 @@ class MestreDistribuido:
                 self._cond.notify_all()
 
     def obter_ghosts(self, worker_id, geracao):
+        """Retorna as linhas ghost (bordas vizinhas) para o worker."""
         with self._cond:
             while self._geracao_pronta < geracao:
                 self._cond.wait()
@@ -133,6 +155,7 @@ class MestreDistribuido:
             }
 
     def _calcular_ghosts(self):
+        """Computa as linhas ghost para cada worker a partir das bordas recebidas."""
         self._ghosts.clear()
         for wid in range(self.num_workers):
             ghost_topo = self._bordas[wid - 1][1] if wid > 0 else None
@@ -140,23 +163,28 @@ class MestreDistribuido:
             self._ghosts[wid] = (ghost_topo, ghost_base)
 
     def enviar_resultado(self, worker_id, fatia_final):
+        """Recebe a fatia final de um worker ao termino da simulacao."""
         with self._lock_resultado:
             self._fatias_finais[worker_id] = fatia_final
             if all(f is not None for f in self._fatias_finais):
                 self._evento_resultado.set()
 
     def aguardar_resultado(self):
+        """Bloqueia ate que todos os workers tenham enviado seus resultados."""
         self._evento_resultado.wait()
 
     def obter_matriz_final(self):
+        """Remonta a matriz completa a partir das fatias finais dos workers."""
         return remontar_matriz(self._fatias_finais)
 
     def enviar_metricas(self, worker_id, metricas):
+        """Recebe as metricas de um worker ao final da execucao."""
         with self._lock_metricas:
             self._metricas_workers[worker_id] = metricas
             if all(m is not None for m in self._metricas_workers):
                 self._evento_metricas.set()
 
     def aguardar_metricas(self):
+        """Bloqueia ate que todos os workers tenham enviado suas metricas."""
         self._evento_metricas.wait()
         return self._metricas_workers

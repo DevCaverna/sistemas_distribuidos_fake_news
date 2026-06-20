@@ -35,7 +35,8 @@ class MetricasWorker:
 
     def finalizar_processamento(self):
         self._tempo_proc = time.perf_counter() - self._t0
-        self._cpu_percent = self._processo.cpu_percent()
+        raw_cpu = self._processo.cpu_percent()
+        self._cpu_percent = raw_cpu / psutil.cpu_count()
 
     def iniciar_comunicacao(self):
         self._t0 = time.perf_counter()
@@ -216,7 +217,7 @@ class RelatorioMetricas:
 
         return arquivos
 
-    def imprimir_resumo(self, tempo_total):
+    def imprimir_resumo(self, tempo_total, rotulo="SISTEMA DISTRIBUÍDO"):
         dados_por_worker = {}
         for reg in self._dados:
             wid = reg["worker_id"]
@@ -224,7 +225,7 @@ class RelatorioMetricas:
 
         print()
         print("=" * 60)
-        print("  MÉTRICAS DO SISTEMA DISTRIBUÍDO")
+        print(f"  MÉTRICAS DO SISTEMA {rotulo}")
         print("=" * 60)
 
         for wid in sorted(dados_por_worker):

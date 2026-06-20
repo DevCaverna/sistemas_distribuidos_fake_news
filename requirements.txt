@@ -1,6 +1,7 @@
 Pyro5==5.16
-psutil
-matplotlib
-seaborn
-pandas
-customtkinter
+psutil>=5.9.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+pandas>=2.0.0
+Pillow>=10.0.0
+customtkinter>=5.2.0
