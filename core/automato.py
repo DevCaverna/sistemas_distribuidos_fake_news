@@ -19,17 +19,15 @@ Regras de transição (por geração):
 Referência do modelo: Vizinhança de Moore — 8 vizinhos adjacentes.
 """
 
-# ---------------------------------------------------------------------------
-# Constantes de estado
-# ---------------------------------------------------------------------------
+import random
+
 IGNORANTE = 0
 ESPALHADOR = 1
 INATIVO = 2
 
+INFLUENCIADOR_PROB_MIN = 0.45
+INFLUENCIADOR_PROB_MAX = 0.60
 
-# ---------------------------------------------------------------------------
-# Funções auxiliares
-# ---------------------------------------------------------------------------
 
 def _contar_vizinhos_espalhadores(matriz, i, j, num_linhas, num_colunas):
     """Conta vizinhos espalhadores usando vizinhança de Moore (8 vizinhos).
@@ -60,11 +58,23 @@ def _contar_vizinhos_espalhadores(matriz, i, j, num_linhas, num_colunas):
     return total
 
 
-# ---------------------------------------------------------------------------
-# Função principal — cálculo de uma geração
-# ---------------------------------------------------------------------------
+def _tem_influenciador_espalhador_5x5(matriz, i, j, num_linhas, num_colunas,
+                                       mapa_influenciadores, offset_global):
+    for di in range(-2, 3):
+        for dj in range(-2, 3):
+            if di == 0 and dj == 0:
+                continue
+            ni, nj = i + di, j + dj
+            if 0 <= ni < num_linhas and 0 <= nj < num_colunas:
+                if matriz[ni][nj] == ESPALHADOR:
+                    linha_global = ni + offset_global
+                    if (linha_global, nj) in mapa_influenciadores:
+                        return True
+    return False
 
-def calcular_geracao(fatia, borda_topo=None, borda_base=None, limiar=2):
+
+def calcular_geracao(fatia, borda_topo=None, borda_base=None, limiar=2,
+                     mapa_influenciadores=None, offset_global=0):
     """Calcula a próxima geração do autômato para uma fatia da matriz.
 
     Esta função é **pura**: não altera a fatia original. Ela constrói uma
@@ -95,9 +105,6 @@ def calcular_geracao(fatia, borda_topo=None, borda_base=None, limiar=2):
     num_linhas_reais = len(fatia)
     num_colunas = len(fatia[0])
 
-    # ----- Montagem da matriz de leitura (com ghost rows) -----
-    # A ideia é inserir as bordas fantasma como linhas extras para que a
-    # contagem de vizinhos funcione naturalmente, sem ifs especiais.
     matriz_leitura = []
 
     if borda_topo is not None:
@@ -108,10 +115,10 @@ def calcular_geracao(fatia, borda_topo=None, borda_base=None, limiar=2):
 
     total_linhas_leitura = len(matriz_leitura)
 
-    # Offset: a primeira linha real dentro de `matriz_leitura`.
     offset = 1 if borda_topo is not None else 0
 
-    # ----- Cálculo da próxima geração (double-buffer) -----
+    offset_leitura_para_global = offset_global - offset
+
     nova_fatia = []
 
     for idx_real in range(num_linhas_reais):
@@ -126,15 +133,27 @@ def calcular_geracao(fatia, borda_topo=None, borda_base=None, limiar=2):
                     matriz_leitura, idx_leitura, j,
                     total_linhas_leitura, num_colunas,
                 )
+
                 if vizinhos >= limiar:
                     nova_linha.append(ESPALHADOR)
+
+                elif mapa_influenciadores and _tem_influenciador_espalhador_5x5(
+                    matriz_leitura, idx_leitura, j,
+                    total_linhas_leitura, num_colunas,
+                    mapa_influenciadores, offset_leitura_para_global,
+                ):
+                    prob = random.uniform(INFLUENCIADOR_PROB_MIN, INFLUENCIADOR_PROB_MAX)
+                    if random.random() < prob:
+                        nova_linha.append(ESPALHADOR)
+                    else:
+                        nova_linha.append(IGNORANTE)
                 else:
                     nova_linha.append(IGNORANTE)
 
             elif estado_atual == ESPALHADOR:
                 nova_linha.append(INATIVO)
 
-            else:  # INATIVO — estado absorvente
+            else:
                 nova_linha.append(INATIVO)
 
         nova_fatia.append(nova_linha)

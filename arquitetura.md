@@ -2,8 +2,8 @@
 
 ## 1. Visão Geral da Arquitetura
 
-A arquitetura adotada é o padrão **Mestre-Trabalhador (Master-Worker)** com topologia em estrela e barreira global gerenciada pelo Mestre.
-A comunicação é realizada via **Pyro5**, um framework de RPC para Python que abstrai a camada de sockets e serialização. O Mestre expõe objetos remotos que os Workers invocam a cada geração para trocar bordas.
+A arquitetura adotada é o padrão **Mestre-Trabalhador (Master-Worker)** com topologia em estrela.
+A comunicação é realizada via **Pyro5 (Python Remote Objects)**, que abstrai a invocação de métodos remotos (RMI) sobre TCP. O Mestre é registrado como objeto remoto no Name Server do Pyro5, e os Workers obtêm um proxy para invocar seus métodos diretamente.
 
 - **Linguagem:** Python 3.x
 - **Comunicação:** Pyro5 (RPC sobre TCP)
@@ -25,8 +25,6 @@ A matriz bidimensional (população) é fatiada horizontalmente.
 
 Processo independente que atua como serviço de descoberta. O Mestre registra seu objeto remoto com um nome simbólico (`mestre.fakenews`), e os Workers o localizam através desse nome, sem precisar conhecer IP/porta do Mestre antecipadamente.
 
-### 3.2. Nó Mestre (`MestreDistribuido`)
-
 Orquestrador central responsável por:
 
 1. Inicializar a matriz completa com o estado inicial (Ignorantes e Espalhadores).
@@ -46,33 +44,21 @@ Processo isolado (pode rodar em terminais ou máquinas diferentes) que processa 
 
 **Fluxo:**
 
-1. Conectar-se ao Name Server e obter um proxy para o objeto remoto do Mestre.
-2. Chamar `registrar_worker()` para receber sua fatia, configuração e ghost rows iniciais.
-3. Para cada geração:
-   - Calcular a próxima geração localmente via `calcular_geracao(fatia, ghost_topo, ghost_base, limiar)`.
-   - Extrair a primeira e última linha reais da fatia atualizada.
-   - Enviar as bordas para o Mestre (`enviar_bordas`).
-   - Aguardar as ghost rows calculadas pelo Mestre (`obter_ghosts`).
-   - Atualizar `ghost_topo` e `ghost_base` para a próxima iteração.
-   - Se `terminar` for `True`, interromper o loop.
-4. Enviar a fatia final processada para o Mestre (`enviar_resultado`).
+1. Obter um proxy do Mestre via Pyro5 Name Server.
+2. Registrar-se e receber sua submatriz, ghost rows iniciais, mapa de influenciadores e offset global.
+3. Executar o loop de gerações.
+4. Ao fim de cada geração local, enviar as fronteiras (sua primeira e última linha real) para o Mestre.
+5. Atualizar as Ghost Rows com os dados recebidos do Mestre antes de calcular a próxima geração.
+6. Retornar a submatriz final processada.
 
-## 4. Protocolo de Comunicação (Pyro5 RPC)
+## 4. Protocolo de Comunicação (RMI via Pyro5)
 
-Não há protocolo binário customizado. Toda comunicação ocorre por meio de chamadas de método remoto Pyro5, que serializa os argumentos e retornos automaticamente.
+A comunicação é realizada via invocação de métodos remotos. O Mestre expõe os seguintes métodos:
 
-**Métodos Remotos Expostos pelo Mestre:**
-
-| Método                                                                             | Direção         | Descrição                                          |
-| ---------------------------------------------------------------------------------- | --------------- | -------------------------------------------------- |
-| `registrar_worker()`                                                               | Worker → Mestre | Worker se registra e recebe sua fatia/configuração |
-| `enviar_bordas(worker_id, geracao, borda_topo, borda_base, contagem_espalhadores)` | Worker → Mestre | Worker envia suas linhas de borda da geração atual |
-| `obter_ghosts(worker_id, geracao)`                                                 | Worker → Mestre | Worker busca as ghost rows após a barreira         |
-| `enviar_resultado(worker_id, fatia_final)`                                         | Worker → Mestre | Worker entrega sua fatia processada ao final       |
-
-## 5. Fluxo de Execução Passo a Passo
-
-### Inicialização
+- `registrar_worker()` → Retorna config inicial (fatia, ghost rows, limiar, mapa de influenciadores, offset global).
+- `enviar_bordas(worker_id, geracao, borda_topo, borda_base, contagem_espalhadores)` → Worker envia fronteiras atualizadas.
+- `obter_ghosts(worker_id, geracao)` → Worker recebe ghost rows cruzadas dos vizinhos.
+- `enviar_resultado(worker_id, fatia_final)` → Worker envia submatriz final processada.
 
 1. Iniciar o **Pyro5 Name Server** (`python3 -m Pyro5.nameserver`).
 2. Iniciar o **Mestre** — ele cria a matriz, fatia, e se registra no Name Server.
@@ -99,5 +85,11 @@ Não há protocolo binário customizado. Toda comunicação ocorre por meio de c
 
 ## 7. Estratégia para Melhorias (Diferencial / Inovação)
 
-- **Redução de Comunicação (Peer-to-Peer):** Em vez de toda borda passar pelo Mestre, os Workers poderiam trocar ghost rows diretamente entre si, reduzindo o gargalo central.
-- **Influenciadores Digitais:** Inicializar células como "Super Espalhador" (raio de vizinhança maior ou contágio de 100%).
+Para buscar a pontuação extra de inovações, a arquitetura permite as seguintes extensões fáceis de plugar:
+
+- **Redução de Comunicação (Comunicação Peer-to-Peer):** Em vez do Mestre fazer o roteamento das bordas (Fase 5), o Mestre envia aos Workers os IPs uns dos outros. A cada geração, o Worker X abre um socket direto com o Worker X-1 e X+1 para trocar bordas. Isso diminui o gargalo no Mestre drasticamente.
+- **Influenciadores Digitais:**
+  - _Distribuição:_ 1% da população total é marcada estaticamente como influenciador no início da simulação (`criar_mapa_influenciadores` em `core/utils.py`).
+  - _Vizinhança Estendida:_ Quando um influenciador está no estado ESPALHADOR, seu raio de influência abrange um bloco 5×5 (até 24 vizinhos), ao invés da vizinhança de Moore padrão (3×3, 8 vizinhos).
+  - _Transmissão Probabilística:_ A cada tentativa de conversão de um IGNORANTE dentro do bloco 5×5, a probabilidade é sorteada uniformemente entre 45% e 60%.
+  - _Transporte Distribuído:_ O mapa de influenciadores é serializado como lista de tuplas e enviado pelo Mestre a cada Worker na fase `INIT` (`registrar_worker`). O Worker reconstrói o `set` localmente e o repassa a `calcular_geracao` junto com o `offset_global` da sua fatia.

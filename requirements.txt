@@ -3,3 +3,4 @@ psutil
 matplotlib
 seaborn
 pandas
+customtkinter
