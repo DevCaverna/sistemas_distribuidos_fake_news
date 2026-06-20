@@ -12,12 +12,12 @@ Gera grafico de barras comparativo entre as tres modalidades de execucao (Sequen
 
 Registra o resultado da ultima execucao para um tipo de modalidade.
 
-| Parametro    | Tipo   | Descricao                              |
-| ------------ | ------ | -------------------------------------- |
-| `tipo`       | str    | `"Sequencial"`, `"Paralela"` ou `"Distribuida"` |
-| `tempo_total`| float  | Tempo total de execucao em segundos    |
-| `cpu_medio`  | float  | Uso medio de CPU (%)                   |
-| `rede_bytes` | int    | Total de bytes trafegados (0 se N/A)   |
+| Parametro     | Tipo  | Descricao                                       |
+| ------------- | ----- | ----------------------------------------------- |
+| `tipo`        | str   | `"Sequencial"`, `"Paralela"` ou `"Distribuida"` |
+| `tempo_total` | float | Tempo total de execucao em segundos             |
+| `cpu_medio`   | float | Uso medio de CPU (%)                            |
+| `rede_bytes`  | int   | Total de bytes trafegados (0 se N/A)            |
 
 ### `todos_executados()`
 

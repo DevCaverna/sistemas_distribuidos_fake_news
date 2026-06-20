@@ -6,11 +6,11 @@ Implementa o modelo computacional de propagacao de fake news como um automato ce
 
 Cada celula representa um individuo da populacao:
 
-| Valor | Constante     | Significado                                    |
-| ----- | ------------- | ---------------------------------------------- |
-| 0     | `IGNORANTE`   | Ainda nao recebeu/acredita na informacao       |
-| 1     | `ESPALHADOR`  | Acredita e compartilha a informacao            |
-| 2     | `INATIVO`     | Recebeu a informacao, mas nao compartilha mais |
+| Valor | Constante    | Significado                                    |
+| ----- | ------------ | ---------------------------------------------- |
+| 0     | `IGNORANTE`  | Ainda nao recebeu/acredita na informacao       |
+| 1     | `ESPALHADOR` | Acredita e compartilha a informacao            |
+| 2     | `INATIVO`    | Recebeu a informacao, mas nao compartilha mais |
 
 ## Funcoes Principais
 
@@ -30,15 +30,15 @@ Funcao **pura** — nao altera a fatia original. Constroi uma matriz de trabalho
 
 **Parametros:**
 
-| Parametro             | Tipo     | Default | Descricao                                       |
-| --------------------- | -------- | ------- | ----------------------------------------------- |
-| `fatia`               | list     | —       | Submatriz a processar                           |
-| `mapa_influenciadores`| set      | —       | Conjunto de `(linha, col)` dos influenciadores  |
-| `ghost_topo`          | list|None| None   | Linha de borda superior (fatia anterior)        |
-| `ghost_base`          | list|None| None   | Linha de borda inferior (fatia posterior)       |
-| `limiar`              | int      | 3       | Vizinhos necessarios para conversao             |
-| `rng`                 | Random   | `random`| Gerador de numeros aleatorios                   |
-| `linha_inicial`       | int      | 0       | Offset global da fatia (para mapa de influenciadores) |
+| Parametro              | Tipo   | Default  | Descricao                                             |
+| ---------------------- | ------ | -------- | ----------------------------------------------------- | ----------------------------------------- |
+| `fatia`                | list   | —        | Submatriz a processar                                 |
+| `mapa_influenciadores` | set    | —        | Conjunto de `(linha, col)` dos influenciadores        |
+| `ghost_topo`           | list   | None     | None                                                  | Linha de borda superior (fatia anterior)  |
+| `ghost_base`           | list   | None     | None                                                  | Linha de borda inferior (fatia posterior) |
+| `limiar`               | int    | 3        | Vizinhos necessarios para conversao                   |
+| `rng`                  | Random | `random` | Gerador de numeros aleatorios                         |
+| `linha_inicial`        | int    | 0        | Offset global da fatia (para mapa de influenciadores) |
 
 **Retorno:** `list[list[int]]` — nova submatriz calculada.
 
@@ -51,13 +51,13 @@ Aplica o efeito da midia sobre uma fatia da populacao. Atuando apenas em celulas
   - `prob_sensacionalista` (default 8%): IGNORANTE -> ESPALHADOR (midia dissemina fake news).
   - caso contrario: IGNORANTE -> INATIVO (midia combate fake news).
 
-| Parametro              | Tipo   | Default | Descricao                                          |
-| ---------------------- | ------ | ------- | -------------------------------------------------- |
-| `fatia`                | list   | —       | Submatriz a processar                              |
-| `media_ativa`          | bool   | —       | Se `True`, aplica o efeito; se `False`, retorna copia |
-| `rng`                  | Random | `random`| Gerador de numeros aleatorios                      |
-| `chance_alcance`       | float  | 0.15    | Probabilidade de uma celula IGNORANTE ser alcancada|
-| `prob_sensacionalista` | float  | 0.08    | Chance de a midia disseminar em vez de combater    |
+| Parametro              | Tipo   | Default  | Descricao                                             |
+| ---------------------- | ------ | -------- | ----------------------------------------------------- |
+| `fatia`                | list   | —        | Submatriz a processar                                 |
+| `media_ativa`          | bool   | —        | Se `True`, aplica o efeito; se `False`, retorna copia |
+| `rng`                  | Random | `random` | Gerador de numeros aleatorios                         |
+| `chance_alcance`       | float  | 0.15     | Probabilidade de uma celula IGNORANTE ser alcancada   |
+| `prob_sensacionalista` | float  | 0.08     | Chance de a midia disseminar em vez de combater       |
 
 **Retorno:** `list[list[int]]` — nova fatia apos acao da midia.
 

@@ -109,17 +109,17 @@ docker compose up --scale worker=2 mestre-distribuido worker
 
 ## Documentacao por Modulo
 
-| Modulo                    | Documentacao                            |
-| ------------------------- | --------------------------------------- |
-| `core/automato.py`        | [docs/core/automato.md](docs/core/automato.md) |
-| `core/utils.py`           | [docs/core/utils.md](docs/core/utils.md) |
-| `core/metricas.py`        | [docs/core/metricas.md](docs/core/metricas.md) |
-| `core/comparativo.py`     | [docs/core/comparativo.md](docs/core/comparativo.md) |
-| `main_sequencial.py`      | [docs/sequencial.md](docs/sequencial.md) |
-| `paralelo/`               | [docs/paralelo.md](docs/paralelo.md) |
-| `distribuido/`            | [docs/distribuido.md](docs/distribuido.md) |
-| `app_gui.py` + `gui/`     | [docs/gui.md](docs/gui.md) |
-| Testes                    | [docs/testes.md](docs/testes.md) |
+| Modulo                | Documentacao                                         |
+| --------------------- | ---------------------------------------------------- |
+| `core/automato.py`    | [docs/core/automato.md](docs/core/automato.md)       |
+| `core/utils.py`       | [docs/core/utils.md](docs/core/utils.md)             |
+| `core/metricas.py`    | [docs/core/metricas.md](docs/core/metricas.md)       |
+| `core/comparativo.py` | [docs/core/comparativo.md](docs/core/comparativo.md) |
+| `main_sequencial.py`  | [docs/sequencial.md](docs/sequencial.md)             |
+| `paralelo/`           | [docs/paralelo.md](docs/paralelo.md)                 |
+| `distribuido/`        | [docs/distribuido.md](docs/distribuido.md)           |
+| `app_gui.py` + `gui/` | [docs/gui.md](docs/gui.md)                           |
+| Testes                | [docs/testes.md](docs/testes.md)                     |
 
 ## Referencias
 

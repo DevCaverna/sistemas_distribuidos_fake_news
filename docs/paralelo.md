@@ -57,19 +57,19 @@ Com `num_workers=1` (sem ghost rows), o resultado e identico ao sequencial. Com 
 python3 -m paralelo.main_paralelo [--param valor]
 ```
 
-| Parametro       | Default | Descricao                             |
-| --------------- | ------- | ------------------------------------- |
-| `--linhas`      | 100     | Numero de linhas                      |
-| `--colunas`     | 100     | Numero de colunas                     |
-| `--geracoes`    | 50      | Numero de geracoes                    |
-| `--espalhadores`| 0.05    | Percentual inicial de espalhadores    |
-| `--limiar`      | 3       | Limiar de contagio                    |
-| `--semente`     | 42      | Semente aleatoria                     |
-| `--workers`     | 2       | Numero de threads workers             |
+| Parametro        | Default | Descricao                          |
+| ---------------- | ------- | ---------------------------------- |
+| `--linhas`       | 100     | Numero de linhas                   |
+| `--colunas`      | 100     | Numero de colunas                  |
+| `--geracoes`     | 50      | Numero de geracoes                 |
+| `--espalhadores` | 0.05    | Percentual inicial de espalhadores |
+| `--limiar`       | 3       | Limiar de contagio                 |
+| `--semente`      | 42      | Semente aleatoria                  |
+| `--workers`      | 2       | Numero de threads workers          |
 
 ## Arquivos Gerados
 
-| Arquivo                               | Conteudo                              |
-| ------------------------------------- | ------------------------------------- |
-| `metricas/metricas_workers.csv`       | Metricas por worker/geracao           |
-| `metricas/profiling_*.png`            | Graficos de CPU, latencia, gargalos   |
+| Arquivo                         | Conteudo                            |
+| ------------------------------- | ----------------------------------- |
+| `metricas/metricas_workers.csv` | Metricas por worker/geracao         |
+| `metricas/profiling_*.png`      | Graficos de CPU, latencia, gargalos |

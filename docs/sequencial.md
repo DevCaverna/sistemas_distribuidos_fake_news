@@ -19,19 +19,19 @@ Entry point e implementacao da versao sequencial refatorada.
 python3 main_sequencial.py [--param valor]
 ```
 
-| Parametro              | Default | Descricao                                     |
-| ---------------------- | ------- | --------------------------------------------- |
-| `--linhas`             | 100     | Numero de linhas                              |
-| `--colunas`            | 100     | Numero de colunas                             |
-| `--geracoes`           | 50      | Numero de geracoes                            |
-| `--espalhadores`       | 0.05    | Percentual inicial de espalhadores            |
-| `--limiar`             | 3       | Limiar de contagio (vizinhos necessarios)     |
-| `--semente`            | 42      | Semente aleatoria para reproducibilidade      |
-| `--grade`              | flag    | Imprime a grade no console a cada geracao     |
-| `--influenciadores`    | True    | Ativa/desativa influenciadores digitais       |
-| `--usar-midia`         | True    | Ativa/desativa efeito midia                   |
-| `--geracao-midia`      | 5       | Geracao a partir da qual a midia atua         |
-| `--prob-sensacionalista` | 0.08  | Probabilidade de midia disseminar fake news   |
+| Parametro                | Default | Descricao                                   |
+| ------------------------ | ------- | ------------------------------------------- |
+| `--linhas`               | 100     | Numero de linhas                            |
+| `--colunas`              | 100     | Numero de colunas                           |
+| `--geracoes`             | 50      | Numero de geracoes                          |
+| `--espalhadores`         | 0.05    | Percentual inicial de espalhadores          |
+| `--limiar`               | 3       | Limiar de contagio (vizinhos necessarios)   |
+| `--semente`              | 42      | Semente aleatoria para reproducibilidade    |
+| `--grade`                | flag    | Imprime a grade no console a cada geracao   |
+| `--influenciadores`      | True    | Ativa/desativa influenciadores digitais     |
+| `--usar-midia`           | True    | Ativa/desativa efeito midia                 |
+| `--geracao-midia`        | 5       | Geracao a partir da qual a midia atua       |
+| `--prob-sensacionalista` | 0.08    | Probabilidade de midia disseminar fake news |
 
 ## Retorno
 
@@ -47,7 +47,7 @@ A funcao `executar_sequencial()` retorna uma tupla de 3 elementos:
 
 ## Arquivos Gerados
 
-| Arquivo                               | Conteudo                              |
-| ------------------------------------- | ------------------------------------- |
-| `metricas/metricas_sequencial.csv`    | CPU e tempo por geracao               |
-| `metricas/metricas_sequencial.png`    | Grafico de CPU e tempo por geracao    |
+| Arquivo                            | Conteudo                           |
+| ---------------------------------- | ---------------------------------- |
+| `metricas/metricas_sequencial.csv` | CPU e tempo por geracao            |
+| `metricas/metricas_sequencial.png` | Grafico de CPU e tempo por geracao |

@@ -64,6 +64,7 @@ Ghost rows sao as linhas de fronteira entre fatias: cada worker recebe a ultima 
 ### Limpeza de Recursos
 
 Ao finalizar, o mestre:
+
 - Remove seu ID do NS (`ns.remove("mestre.fakenews")`).
 - Desliga o daemon Pyro5 (`daemon.shutdown()`).
 - Remove workers do seu registro interno.
@@ -83,29 +84,29 @@ python3 -m distribuido.main_worker --host localhost --porta-ns 9090
 
 ### Parametros do Mestre
 
-| Parametro                | Default | Descricao                                |
-| ------------------------ | ------- | ---------------------------------------- |
-| `--linhas`               | 100     | Numero de linhas                         |
-| `--colunas`              | 100     | Numero de colunas                        |
-| `--geracoes`             | 50      | Numero de geracoes                       |
-| `--espalhadores`         | 0.05    | Percentual inicial de espalhadores       |
-| `--limiar`               | 3       | Limiar de contagio                       |
-| `--semente`              | 42      | Semente aleatoria                        |
-| `--workers`              | 2       | Quantidade de workers                    |
-| `--host`                 | 0.0.0.0 | IP do Mestre                             |
-| `--porta-ns`             | 9090    | Porta do Name Server                     |
-| `--influenciadores`      | True    | Ativa/desativa influenciadores digitais  |
-| `--usar-midia`           | True    | Ativa/desativa efeito midia              |
-| `--geracao-midia`        | 5       | Geracao a partir da qual a midia age     |
-| `--prob-sensacionalista` | 0.08    | Probabilidade de midia disseminar fake   |
+| Parametro                | Default | Descricao                               |
+| ------------------------ | ------- | --------------------------------------- |
+| `--linhas`               | 100     | Numero de linhas                        |
+| `--colunas`              | 100     | Numero de colunas                       |
+| `--geracoes`             | 50      | Numero de geracoes                      |
+| `--espalhadores`         | 0.05    | Percentual inicial de espalhadores      |
+| `--limiar`               | 3       | Limiar de contagio                      |
+| `--semente`              | 42      | Semente aleatoria                       |
+| `--workers`              | 2       | Quantidade de workers                   |
+| `--host`                 | 0.0.0.0 | IP do Mestre                            |
+| `--porta-ns`             | 9090    | Porta do Name Server                    |
+| `--influenciadores`      | True    | Ativa/desativa influenciadores digitais |
+| `--usar-midia`           | True    | Ativa/desativa efeito midia             |
+| `--geracao-midia`        | 5       | Geracao a partir da qual a midia age    |
+| `--prob-sensacionalista` | 0.08    | Probabilidade de midia disseminar fake  |
 
 ### Parametros do Worker
 
-| Parametro      | Default    | Descricao                                |
-| -------------- | ---------- | ---------------------------------------- |
-| `--host`       | `localhost`| IP do Name Server                        |
-| `--porta-ns`   | 9090       | Porta do Name Server                     |
-| `--wid`        | auto       | ID do worker (atribuido pelo mestre)     |
+| Parametro    | Default     | Descricao                            |
+| ------------ | ----------- | ------------------------------------ |
+| `--host`     | `localhost` | IP do Name Server                    |
+| `--porta-ns` | 9090        | Porta do Name Server                 |
+| `--wid`      | auto        | ID do worker (atribuido pelo mestre) |
 
 ## Arquivos Gerados
 

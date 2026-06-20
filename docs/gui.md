@@ -21,23 +21,23 @@ Redireciona `sys.stdout` para o widget `CTkTextbox` na aba "Console / Logs". Tod
 
 Funcoes para exibicao de graficos:
 
-| Funcao                                | Descricao                                      |
-| ------------------------------------- | ---------------------------------------------- |
-| `exibir_imagem_grafico(app, caminho, idx)` | Carrega PNG em FigureCanvasTkAgg, mantem aspect ratio ao redimensionar |
-| `abrir_imagem_tela_cheia(caminho)`    | Abre imagem em janela fullscreen (clique para fechar) |
-| `limpar_graficos(app)`                | Remove todos os graficos do container          |
-| `carregar_graficos_telemetria(app, caminhos)` | Exibe graficos de telemetria + adicionais |
-| `tentar_exibir_comparativo(app)`      | Se todas as 3 modalidades ja executaram, gera grafico comparativo |
+| Funcao                                        | Descricao                                                              |
+| --------------------------------------------- | ---------------------------------------------------------------------- |
+| `exibir_imagem_grafico(app, caminho, idx)`    | Carrega PNG em FigureCanvasTkAgg, mantem aspect ratio ao redimensionar |
+| `abrir_imagem_tela_cheia(caminho)`            | Abre imagem em janela fullscreen (clique para fechar)                  |
+| `limpar_graficos(app)`                        | Remove todos os graficos do container                                  |
+| `carregar_graficos_telemetria(app, caminhos)` | Exibe graficos de telemetria + adicionais                              |
+| `tentar_exibir_comparativo(app)`              | Se todas as 3 modalidades ja executaram, gera grafico comparativo      |
 
 ### `gui/executores.py`
 
 Funcoes que executam cada modalidade em background (chamadas por `threading.Thread`):
 
-| Funcao                          | Descricao                              |
-| ------------------------------- | -------------------------------------- |
-| `rodar_sequencial(app, params)` | Executa `main_sequencial.executar_sequencial` e carrega metricas |
-| `rodar_paralelo(app, params)`   | Instancia `MestreParalelo`, executa e carrega graficos |
-| `rodar_distribuido(app, params)`| Inicia NS + workers + mestre, executa e carrega graficos |
+| Funcao                           | Descricao                                                        |
+| -------------------------------- | ---------------------------------------------------------------- |
+| `rodar_sequencial(app, params)`  | Executa `main_sequencial.executar_sequencial` e carrega metricas |
+| `rodar_paralelo(app, params)`    | Instancia `MestreParalelo`, executa e carrega graficos           |
+| `rodar_distribuido(app, params)` | Inicia NS + workers + mestre, executa e carrega graficos         |
 
 ### `FakeNewsApp` (`app_gui.py`)
 

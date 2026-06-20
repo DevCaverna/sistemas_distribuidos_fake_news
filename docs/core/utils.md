@@ -8,12 +8,12 @@ Funcoes utilitarias para criacao, manipulacao e visualizacao de matrizes, alem d
 
 Gera a matriz inicial da populacao. Todos os individuos comecam como `IGNORANTE`; posicoes aleatorias sao convertidas em `ESPALHADOR` conforme o percentual.
 
-| Parametro                | Default | Descricao                           |
-| ------------------------ | ------- | ----------------------------------- |
-| `linhas`                 | —       | Numero de linhas                    |
-| `colunas`                | —       | Numero de colunas                   |
-| `percentual_espalhadores`| 0.02    | Fracao de celulas que iniciam como espalhadoras |
-| `semente`                | —       | Seed para `random.seed()` — garante reprodutibilidade |
+| Parametro                 | Default | Descricao                                             |
+| ------------------------- | ------- | ----------------------------------------------------- |
+| `linhas`                  | —       | Numero de linhas                                      |
+| `colunas`                 | —       | Numero de colunas                                     |
+| `percentual_espalhadores` | 0.02    | Fracao de celulas que iniciam como espalhadoras       |
+| `semente`                 | —       | Seed para `random.seed()` — garante reprodutibilidade |
 
 **Retorno:** `list[list[int]]`.
 
