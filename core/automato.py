@@ -1,5 +1,5 @@
 """
-core/automato.py — Lógica pura do autômato celular de propagação de Fake News.
+core/autômato.py — Lógica pura do autômato celular de propagação de Fake News.
 
 Este módulo contém SOMENTE a regra de transição de estados e funções auxiliares
 de contagem. Ele é projetado para operar sobre **fatias** da matriz global,

@@ -56,8 +56,8 @@ Processo isolado (pode rodar em terminais ou máquinas diferentes) que processa 
 A comunicação é realizada via invocação de métodos remotos. O Mestre expõe os seguintes métodos:
 
 - `registrar_worker()` → Retorna config inicial (fatia, ghost rows, limiar, mapa de influenciadores, offset global).
-- `enviar_bordas(worker_id, geracao, borda_topo, borda_base, contagem_espalhadores)` → Worker envia fronteiras atualizadas.
-- `obter_ghosts(worker_id, geracao)` → Worker recebe ghost rows cruzadas dos vizinhos.
+- `enviar_bordas(worker_id, geração, borda_topo, borda_base, contagem_espalhadores)` → Worker envia fronteiras atualizadas.
+- `obter_ghosts(worker_id, geração)` → Worker recebe ghost rows cruzadas dos vizinhos.
 - `enviar_resultado(worker_id, fatia_final)` → Worker envia submatriz final processada.
 
 1. Iniciar o **Pyro5 Name Server** (`python3 -m Pyro5.nameserver`).

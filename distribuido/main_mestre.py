@@ -2,7 +2,7 @@
 distribuido/main_mestre.py — Entry point do Mestre distribuido (Pyro5).
 
 Inicializa o orquestrador, registra-se no NameServer, aguarda workers,
-executa a simulacao e gera relatorios de metricas (CSV + graficos).
+executa a simulação e gera relatorios de métricas (CSV + graficos).
 """
 
 import argparse

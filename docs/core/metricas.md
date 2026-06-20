@@ -1,12 +1,12 @@
 # Modulo `core/metricas.py`
 
-Sistema de telemetria para coleta, exportacao e visualizacao de metricas de desempenho das tres modalidades de execucao.
+Sistema de telemetria para coleta, exportação e visualização de métricas de desempenho das tres modalidades de execução.
 
 ## `MetricasWorker`
 
-Coletor executado dentro de cada worker (thread ou processo remoto). Registra por geracao:
+Coletor executado dentro de cada worker (thread ou processo remoto). Registra por geração:
 
-| Metrica               | Unidade | Descricao                                |
+| Métrica               | Unidade | Descricao                                |
 | --------------------- | ------- | ---------------------------------------- |
 | `cpu_percent`         | %       | Uso de CPU do processo durante o calculo |
 | `tempo_processamento` | ms      | Tempo gasto na funcao `calcular_geracao` |
@@ -18,32 +18,32 @@ Coletor executado dentro de cada worker (thread ou processo remoto). Registra po
 
 | Metodo                      | Descricao                                     |
 | --------------------------- | --------------------------------------------- |
-| `iniciar_processamento()`   | Marca inicio do calculo da geracao atual      |
+| `iniciar_processamento()`   | Marca início do calculo da geração atual      |
 | `finalizar_processamento()` | Registra `cpu_percent` e tempo de calculo     |
-| `iniciar_comunicacao()`     | Marca inicio da troca de bordas               |
-| `finalizar_comunicacao()`   | Registra tempo e bytes da comunicacao         |
-| `exportar()`                | Retorna o registro da geracao como dicionario |
+| `iniciar_comunicacao()`     | Marca início da troca de bordas               |
+| `finalizar_comunicacao()`   | Registra tempo e bytes da comunicação         |
+| `exportar()`                | Retorna o registro da geração como dicionario |
 
 ## `RelatorioMetricas`
 
-Consolida metricas de todos os workers e gera relatorios.
+Consolida métricas de todos os workers e gera relatorios.
 
 | Metodo                                 | Descricao                                         |
 | -------------------------------------- | ------------------------------------------------- |
 | `adicionar_metricas_worker(lista)`     | Adiciona registros de um worker                   |
-| `exportar_csv()`                       | Salva `metricas/metricas_workers.csv`             |
-| `gerar_graficos()`                     | Gera PNGs de telemetria (CPU, latencia, gargalos) |
+| `exportar_csv()`                       | Salva `métricas/metricas_workers.csv`             |
+| `gerar_graficos()`                     | Gera PNGs de telemetria (CPU, latência, gargalos) |
 | `imprimir_resumo(tempo_total, rotulo)` | Exibe tabela formatada no console                 |
 
 ### Graficos Gerados
 
-Todos salvos em `metricas/`:
+Todos salvos em `métricas/`:
 
 | Arquivo                         | Conteudo                                    |
 | ------------------------------- | ------------------------------------------- |
-| `gargalos_rede_vs_cpu.png`      | Dispersao: latencia de rede vs tempo de CPU |
+| `gargalos_rede_vs_cpu.png`      | Dispersao: latência de rede vs tempo de CPU |
 | `processamento_vs_latencia.png` | Evolucao temporal por worker                |
-| `profiling_tempos_barras.png`   | Barras empilhadas por geracao               |
+| `profiling_tempos_barras.png`   | Barras empilhadas por geração               |
 | `profiling_cpu.png`             | Consumo de CPU por worker ao longo do tempo |
 
 ### Normalizacao de CPU

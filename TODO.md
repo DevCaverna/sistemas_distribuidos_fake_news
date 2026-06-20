@@ -9,7 +9,7 @@
 [ ] Gráficos na interface gráfica
 
 - Existe uma uma aba na inteface gráfica "Métricas e telemetria".
-- Existe uma geração de gráficos que gera gráficos de métricas e telemetria e grava ela na pasta metricas/.
+- Existe uma geração de gráficos que gera gráficos de métricas e telemetria e grava ela na pasta métricas/.
 - Na aba "Métricas e telemetria", devem ser exibidos esses gráficos, um abaixo do outro.
 
 [ ] Métricas funcionando no paralelo

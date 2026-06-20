@@ -1,7 +1,7 @@
 """
 paralelo/main_paralelo.py — Entry point da versao paralela (threads).
 
-Executa a simulacao com pool de threads, coleta metricas (CPU, tempo)
+Executa a simulação com pool de threads, coleta métricas (CPU, tempo)
 e gera graficos de telemetria.
 """
 
@@ -16,7 +16,7 @@ from paralelo.mestre import MestreParalelo
 def main():
     """Parser de argumentos e ponto de entrada da versao paralela.
 
-    Aceita os mesmos parametros de simulacao da versao sequencial,
+    Aceita os mesmos parametros de simulação da versao sequencial,
     acrescido de --workers para definir o tamanho do pool de threads.
     """
     parser = argparse.ArgumentParser()

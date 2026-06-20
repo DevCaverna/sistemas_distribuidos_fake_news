@@ -8,8 +8,8 @@ Interface grafica integrada construida com **CustomTkinter** e **matplotlib** (F
 gui/
   __init__.py          — modulo vazio
   console.py           — RedirectorConsole (redireciona stdout para o widget Textbox)
-  telemetria.py        — exibicao de graficos, fullscreen, carregamento de metricas
-  executores.py        — execucao das 3 modalidades em background
+  telemetria.py        — exibicao de graficos, fullscreen, carregamento de métricas
+  executores.py        — execução das 3 modalidades em background
 app_gui.py             — classe FakeNewsApp (sidebar, painel, botoes)
 ```
 
@@ -35,7 +35,7 @@ Funcoes que executam cada modalidade em background (chamadas por `threading.Thre
 
 | Funcao                           | Descricao                                                        |
 | -------------------------------- | ---------------------------------------------------------------- |
-| `rodar_sequencial(app, params)`  | Executa `main_sequencial.executar_sequencial` e carrega metricas |
+| `rodar_sequencial(app, params)`  | Executa `main_sequencial.executar_sequencial` e carrega métricas |
 | `rodar_paralelo(app, params)`    | Instancia `MestreParalelo`, executa e carrega graficos           |
 | `rodar_distribuido(app, params)` | Inicia NS + workers + mestre, executa e carrega graficos         |
 
@@ -43,11 +43,11 @@ Funcoes que executam cada modalidade em background (chamadas por `threading.Thre
 
 Classe principal que herda de `ctk.CTk`:
 
-- **Sidebar:** campos de configuracao (linhas, colunas, geracoes, workers, etc.) e indicadores de speedup.
+- **Sidebar:** campos de configuração (linhas, colunas, gerações, workers, etc.) e indicadores de speedup.
 - **3 botoes:** Executar Sequencial, Paralelo, Distribuido — cada um dispara uma thread background.
-- **Abas:** "Console / Logs" (saida textual) e "Metricas e Telemetria" (graficos inline).
-- **Progress bar:** indicador visual de execucao.
-- **Speedup:** atualizado automaticamente na sidebar apos cada execucao.
+- **Abas:** "Console / Logs" (saida textual) e "Métricas e Telemetria" (graficos inline).
+- **Progress bar:** indicador visual de execução.
+- **Speedup:** atualizado automaticamente na sidebar apos cada execução.
 
 ### Funcionalidades
 
@@ -56,7 +56,7 @@ Classe principal que herda de `ctk.CTk`:
 - **Workers locais:** no modo Distribuido, a GUI inicia workers como `subprocess.Popen` com `python3 -m distribuido.main_worker`.
 - **Name Server:** iniciado automaticamente como subprocesso pela GUI.
 
-## Execucao
+## Execução
 
 ```bash
 python3 app_gui.py

@@ -1,12 +1,12 @@
 # Modulo `core/utils.py`
 
-Funcoes utilitarias para criacao, manipulacao e visualizacao de matrizes, alem de cronometro para medicao de desempenho.
+Funcoes utilitarias para criacao, manipulacao e visualização de matrizes, alem de cronômetro para medicao de desempenho.
 
 ## Funcoes
 
 ### `criar_matriz(linhas, colunas, percentual_espalhadores, semente)`
 
-Gera a matriz inicial da populacao. Todos os individuos comecam como `IGNORANTE`; posicoes aleatorias sao convertidas em `ESPALHADOR` conforme o percentual.
+Gera a matriz inicial da população. Todos os indivíduos comecam como `IGNORANTE`; posicoes aleatórias sao convertidas em `ESPALHADOR` conforme o percentual.
 
 | Parametro                 | Default | Descricao                                             |
 | ------------------------- | ------- | ----------------------------------------------------- |
@@ -19,7 +19,7 @@ Gera a matriz inicial da populacao. Todos os individuos comecam como `IGNORANTE`
 
 ### `fatiar_matriz(matriz, num_fatias)`
 
-Divide a matriz horizontalmente em `num_fatias` submatrizes. Se a divisao nao for exata, a ultima fatia absorve as linhas restantes.
+Divide a matriz horizontalmente em `num_fatias` submatrizes. Se a divisao nao for exata, a última fatia absorve as linhas restantes.
 
 **Retorno:** `list[list[list[int]]]`.
 
@@ -37,16 +37,16 @@ Recombina uma lista de fatias (na ordem) em uma unica matriz global.
 
 Imprime a matriz formatada no console com cores (ANSI) para cada estado.
 
-### `imprimir_estatisticas(geracao, contagem)`
+### `imprimir_estatisticas(geração, contagem)`
 
-Exibe resumo textual de uma geracao: quantidade de ignorantes, espalhadores e inativos.
+Exibe resumo textual de uma geração: quantidade de ignorantes, espalhadores e inativos.
 
-### `Cronometro`
+### `Cronômetro`
 
 Classe simples para medicao de tempo:
 
 ```python
-crono = Cronometro()
+crono = Cronômetro()
 crono.iniciar()
 # ... trabalho ...
 crono.parar()

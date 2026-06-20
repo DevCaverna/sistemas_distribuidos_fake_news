@@ -2,7 +2,7 @@
 distribuido/mestre.py — Orquestrador remoto (Mestre) para a versao distribuida.
 
 Expõe um objeto Pyro5 que coordena N workers remotos, gerencia a troca de
-bordas (ghost rows) entre geracoes e coleta metricas de telemetria.
+bordas (ghost rows) entre gerações e coleta métricas de telemetria.
 """
 
 import sys
@@ -20,11 +20,11 @@ from core.utils import (
 
 @Pyro5.api.expose
 class MestreDistribuido:
-    """Orquestrador remoto da simulacao distribuida.
+    """Orquestrador remoto da simulação distribuida.
 
     Registra-se no Pyro5 NameServer, aguarda a conexao de N workers,
-    coordena a troca de bordas a cada geracao (barreira de rede) e
-    coleta metricas de todos os workers ao final.
+    coordena a troca de bordas a cada geração (barreira de rede) e
+    coleta métricas de todos os workers ao final.
     """
 
     def __init__(self, linhas, colunas, geracoes, percentual_espalhadores,
@@ -72,9 +72,9 @@ class MestreDistribuido:
         self._lock_bytes = threading.Lock()
 
     def registrar_worker(self):
-        """Registra um worker remoto, atribui um ID e retorna a configuracao.
+        """Registra um worker remoto, atribui um ID e retorna a configuração.
 
-        Retorna um dicionario com: worker_id, fatia, geracoes, limiar,
+        Retorna um dicionario com: worker_id, fatia, gerações, limiar,
         ghost_topo_inicial, ghost_base_inicial, offset_global,
         mapa_influenciadores, num_workers.
         """
@@ -171,7 +171,7 @@ class MestreDistribuido:
             self._ghosts[wid] = (ghost_topo, ghost_base)
 
     def enviar_resultado(self, worker_id, fatia_final):
-        """Recebe a fatia final de um worker ao termino da simulacao."""
+        """Recebe a fatia final de um worker ao termino da simulação."""
         with self._lock_resultado:
             self._fatias_finais[worker_id] = fatia_final
             if all(f is not None for f in self._fatias_finais):
@@ -186,13 +186,13 @@ class MestreDistribuido:
         return remontar_matriz(self._fatias_finais)
 
     def enviar_metricas(self, worker_id, metricas):
-        """Recebe as metricas de um worker ao final da execucao."""
+        """Recebe as métricas de um worker ao final da execução."""
         with self._lock_metricas:
             self._metricas_workers[worker_id] = metricas
             if all(m is not None for m in self._metricas_workers):
                 self._evento_metricas.set()
 
     def aguardar_metricas(self):
-        """Bloqueia ate que todos os workers tenham enviado suas metricas."""
+        """Bloqueia ate que todos os workers tenham enviado suas métricas."""
         self._evento_metricas.wait()
         return self._metricas_workers
