@@ -99,12 +99,6 @@ pytest tests/test_core_automato.py -v             # modulo especifico
 pytest tests/ --cov=. --cov-report=term-missing   # com cobertura
 ```
 
-### Docker (Distribuido)
-
-```bash
-docker compose up --scale worker=2 mestre-distribuido worker
-```
-
 ---
 
 ## Documentacao por Modulo
