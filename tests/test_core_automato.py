@@ -1,4 +1,5 @@
 import copy
+from unittest.mock import patch
 
 import pytest
 
@@ -6,6 +7,8 @@ from core.automato import (
     ESPALHADOR,
     IGNORANTE,
     INATIVO,
+    INFLUENCIADOR_PROB_MIN,
+    INFLUENCIADOR_PROB_MAX,
     _contar_vizinhos_espalhadores,
     _tem_influenciador_espalhador_5x5,
     calcular_geracao,
@@ -194,3 +197,176 @@ class TestContarEstados:
         m = [[IGNORANTE, ESPALHADOR, INATIVO] for _ in range(4)]
         c = contar_estados(m)
         assert c[IGNORANTE] + c[ESPALHADOR] + c[INATIVO] == 12
+
+
+# ---------------------------------------------------------------------------
+# _tem_influenciador_espalhador_5x5 — limites do raio e condição de skip
+# ---------------------------------------------------------------------------
+
+class TestTemInfluenciadorLimites:
+    """Testes direcionados para os mutantes que sobreviveram na função
+    _tem_influenciador_espalhador_5x5: range do raio e condição di==0 and dj==0."""
+
+    def _matriz(self, linhas=7, colunas=7):
+        return [[IGNORANTE] * colunas for _ in range(linhas)]
+
+    # --- Exatamente no limite: di=±2, dj=±2 DEVE detectar ---
+
+    def test_influenciador_exatamente_2_linhas_acima_detectado(self):
+        m = self._matriz()
+        m[1][3] = ESPALHADOR  # di=-2 em relação ao target (3,3)
+        mapa = {(1, 3)}
+        assert _tem_influenciador_espalhador_5x5(m, 3, 3, 7, 7, mapa, 0) is True
+
+    def test_influenciador_exatamente_2_linhas_abaixo_detectado(self):
+        m = self._matriz()
+        m[5][3] = ESPALHADOR  # di=+2 em relação ao target (3,3)
+        mapa = {(5, 3)}
+        assert _tem_influenciador_espalhador_5x5(m, 3, 3, 7, 7, mapa, 0) is True
+
+    def test_influenciador_exatamente_2_colunas_direita_detectado(self):
+        m = self._matriz()
+        m[3][5] = ESPALHADOR  # dj=+2 em relação ao target (3,3)
+        mapa = {(3, 5)}
+        assert _tem_influenciador_espalhador_5x5(m, 3, 3, 7, 7, mapa, 0) is True
+
+    # --- Fora do limite: di=±3, dj=±3 NÃO deve detectar ---
+    # Estes matam mutmut_6 (range -3..2), mutmut_7 (-2..3),
+    # mutmut_13 (dj: -3..2) e mutmut_14 (dj: -2..3)
+
+    def test_influenciador_3_linhas_acima_nao_detectado(self):
+        # 10 linhas para ter espaço: target em (5,5), influenciador em (2,5) → di=-3
+        m = [[IGNORANTE] * 10 for _ in range(10)]
+        m[2][5] = ESPALHADOR
+        mapa = {(2, 5)}
+        assert _tem_influenciador_espalhador_5x5(m, 5, 5, 10, 10, mapa, 0) is False
+
+    def test_influenciador_3_linhas_abaixo_nao_detectado(self):
+        m = [[IGNORANTE] * 10 for _ in range(10)]
+        m[8][5] = ESPALHADOR  # di=+3 de (5,5)
+        mapa = {(8, 5)}
+        assert _tem_influenciador_espalhador_5x5(m, 5, 5, 10, 10, mapa, 0) is False
+
+    def test_influenciador_3_colunas_esquerda_nao_detectado(self):
+        m = [[IGNORANTE] * 10 for _ in range(10)]
+        m[5][2] = ESPALHADOR  # dj=-3 de (5,5)
+        mapa = {(5, 2)}
+        assert _tem_influenciador_espalhador_5x5(m, 5, 5, 10, 10, mapa, 0) is False
+
+    def test_influenciador_3_colunas_direita_nao_detectado(self):
+        m = [[IGNORANTE] * 10 for _ in range(10)]
+        m[5][8] = ESPALHADOR  # dj=+3 de (5,5)
+        mapa = {(5, 8)}
+        assert _tem_influenciador_espalhador_5x5(m, 5, 5, 10, 10, mapa, 0) is False
+
+    # --- Condição de skip: células na mesma linha/coluna que o target ---
+    # Mata mutmut_15 (or), mutmut_18 (dj!=0), mutmut_19 (dj==1), mutmut_20 (break)
+
+    def test_influenciador_mesma_linha_coluna_adjacente_detectado(self):
+        # di=0, dj=+1 → NÃO deve ser pulado (a condição de skip é di==0 AND dj==0)
+        m = self._matriz()
+        m[3][4] = ESPALHADOR  # di=0, dj=+1 em relação ao target (3,3)
+        mapa = {(3, 4)}
+        assert _tem_influenciador_espalhador_5x5(m, 3, 3, 7, 7, mapa, 0) is True
+
+    def test_influenciador_diretamente_abaixo_detectado(self):
+        # di=+1, dj=0 → NÃO deve ser pulado
+        # Mata mutmut_16 (di!=0 in AND) e mutmut_17 (di==1 in AND)
+        m = self._matriz()
+        m[4][3] = ESPALHADOR  # di=+1, dj=0 em relação ao target (3,3)
+        mapa = {(4, 3)}
+        assert _tem_influenciador_espalhador_5x5(m, 3, 3, 7, 7, mapa, 0) is True
+
+
+# ---------------------------------------------------------------------------
+# calcular_geracao — limiar padrão, offset padrão, bloco influenciador
+# ---------------------------------------------------------------------------
+
+class TestCalcularGeracaoInfluenciador:
+    """Testes com mock do random para verificar o bloco de influenciadores.
+    Matam mutmut_54-62 (prob=None, args de uniform, < vs <=, append errado)."""
+
+    def _fatia_com_influenciador(self):
+        """3x3: ESPALHADOR em (0,0) que é influenciador; único IGNORANTE em (2,2).
+        Todos os outros são INATIVO para garantir que só (2,2) entra no caminho
+        do influenciador — assim random.uniform é chamado exatamente 1 vez."""
+        m = [[INATIVO] * 3 for _ in range(3)]
+        m[0][0] = ESPALHADOR  # influenciador (di=-2, dj=-2 de (2,2))
+        m[2][2] = IGNORANTE   # único target
+        return m
+
+    def test_default_limiar_2_ativa_espalhamento(self):
+        # Usa o limiar padrão (sem passar limiar explícito)
+        # Se o mutante mudar o default para 3, 2 vizinhos não bastam → permanece IGNORANTE
+        fatia = [[ESPALHADOR, IGNORANTE, ESPALHADOR]]
+        resultado = calcular_geracao(fatia)  # limiar padrão
+        assert resultado[0][1] == ESPALHADOR
+
+    @patch('random.random', return_value=0.0)
+    @patch('random.uniform', return_value=0.5)
+    def test_default_offset_global_zero(self, mock_uniform, mock_random):
+        # Sem passar offset_global: influenciador em (0,1) deve ser encontrado
+        # Mutmut_2: default offset_global=1 → linha_global=1 → (1,1) not in mapa → IGNORANTE
+        m = [[IGNORANTE, ESPALHADOR]]
+        mapa = {(0, 1)}
+        resultado = calcular_geracao(m, mapa_influenciadores=mapa, limiar=10)
+        assert resultado[0][0] == ESPALHADOR
+
+    @patch('random.random', return_value=0.0)
+    @patch('random.uniform', return_value=0.5)
+    def test_influenciador_prob_alta_converte_ignorante(self, mock_uniform, mock_random):
+        # random() = 0.0 < prob = 0.5 → ESPALHADOR
+        # Mata mutmut_54 (prob=None), 60 (append(None) em vez de ESPALHADOR)
+        m = self._fatia_com_influenciador()
+        mapa = {(0, 0)}
+        resultado = calcular_geracao(m, mapa_influenciadores=mapa, limiar=10)
+        assert resultado[2][2] == ESPALHADOR
+
+    @patch('random.random', return_value=0.0)
+    @patch('random.uniform', return_value=0.5)
+    def test_uniform_chamado_com_args_corretos(self, mock_uniform, mock_random):
+        # Mata mutmut_55 (uniform(None, MAX)), 56 (uniform(MIN, None)), 57, 58
+        # Único target IGNORANTE → uniform chamado exatamente 1 vez
+        m = self._fatia_com_influenciador()
+        mapa = {(0, 0)}
+        calcular_geracao(m, mapa_influenciadores=mapa, limiar=10)
+        mock_uniform.assert_called_once_with(INFLUENCIADOR_PROB_MIN, INFLUENCIADOR_PROB_MAX)
+
+    @patch('random.random', return_value=0.9)
+    @patch('random.uniform', return_value=0.5)
+    def test_influenciador_prob_baixa_permanece_ignorante(self, mock_uniform, mock_random):
+        # random() = 0.9 > prob = 0.5 → IGNORANTE
+        # Mata mutmut_61 (append(None) no else em vez de IGNORANTE)
+        m = self._fatia_com_influenciador()
+        mapa = {(0, 0)}
+        resultado = calcular_geracao(m, mapa_influenciadores=mapa, limiar=10)
+        assert resultado[2][2] == IGNORANTE
+
+    @patch('random.random', return_value=0.5)
+    @patch('random.uniform', return_value=0.5)
+    def test_influenciador_prob_igual_permanece_ignorante(self, mock_uniform, mock_random):
+        # random() = 0.5, prob = 0.5 → 0.5 < 0.5 é False → IGNORANTE
+        # Mata mutmut_59 (< vs <=): com <=, 0.5<=0.5 é True → ESPALHADOR (errado)
+        m = self._fatia_com_influenciador()
+        mapa = {(0, 0)}
+        resultado = calcular_geracao(m, mapa_influenciadores=mapa, limiar=10)
+        assert resultado[2][2] == IGNORANTE
+
+    @patch('random.random', return_value=0.0)
+    @patch('random.uniform', return_value=0.5)
+    def test_offset_leitura_correto_com_ghost_topo(self, mock_uniform, mock_random):
+        # Mata mutmut_17: offset_global - offset vs offset_global + offset
+        # Fatia: 1 linha, 1 coluna, IGNORANTE
+        # Ghost topo em global row 0 = ESPALHADOR; influenciador mapeado em (0,0)
+        # offset_global=1 (slice começa na linha global 1), offset=1 (ghost existe)
+        # Normal: offset_leitura_para_global = 1-1 = 0 → linha_global = 0+0 = 0 → detecta
+        # Mutant: offset_leitura_para_global = 1+1 = 2 → linha_global = 0+2 = 2 → não detecta
+        mapa = {(0, 0)}
+        resultado = calcular_geracao(
+            [[IGNORANTE]],
+            borda_topo=[ESPALHADOR],
+            mapa_influenciadores=mapa,
+            limiar=10,
+            offset_global=1,
+        )
+        assert resultado[0][0] == ESPALHADOR

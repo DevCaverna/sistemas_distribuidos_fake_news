@@ -169,7 +169,7 @@ mutmut results
 mutmut show <ID>
 ```
 
-**Resultado obtido:** 214 mortos / 64 sobreviveram (77% de detecção) em 278 mutantes gerados.
+**Resultado obtido:** 262 mortos / 16 sobreviveram (94% de detecção) em 278 mutantes gerados.
 
 ---
 
