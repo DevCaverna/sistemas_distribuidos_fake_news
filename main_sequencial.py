@@ -4,13 +4,14 @@ main_sequencial.py — Entry point da versao sequencial refatorada.
 Coleta metricas de CPU e tempo por geracao para exportacao em CSV e graficos.
 """
 
+import argparse
 import csv
 import os
 import time
 
 import psutil
 
-from core.automato import calcular_geracao, contar_estados, ESPALHADOR
+from core.automato import aplicar_midia, calcular_geracao, contar_estados, ESPALHADOR
 from core.utils import (
     criar_matriz, criar_mapa_influenciadores,
     imprimir_grade, imprimir_estatisticas, Cronometro,
@@ -26,6 +27,9 @@ def executar_sequencial(
     semente=42,
     mostrar_grade=False,
     usar_influenciadores=True,
+    usar_midia=True,
+    geracao_midia=5,
+    prob_sensacionalista=0.08,
 ):
     """Executa a simulação sequencial completa usando o módulo core.
 
@@ -44,7 +48,15 @@ def executar_sequencial(
     mostrar_grade : bool
         Se ``True``, imprime a grade a cada geração.
     usar_influenciadores : bool
-        Ativa Influenciadores Digitais.
+        Se ``True``, ativa a mecânica de Influenciadores Digitais (1%
+        da população com vizinhança 5x5 e transmissão probabilística).
+    usar_midia : bool
+        Se ``True``, ativa o efeito da mídia.
+    geracao_midia : int
+        Geração a partir da qual a mídia começa a atuar (padrão: 5).
+    prob_sensacionalista : float
+        Probabilidade de a mídia disseminar fake news quando alcança
+        um IGNORANTE (padrão: 0.08 = 8%).
 
     Retorna
     -------
@@ -76,6 +88,12 @@ def executar_sequencial(
         print(f"  Influenciadores: {len(mapa_influenciadores):,} "
               f"(1% da população, vizinhança 5x5, prob. 45-60%)")
 
+    if usar_midia:
+        pct_sens = prob_sensacionalista * 100
+        pct_combate = (1 - prob_sensacionalista) * 100
+        print(f"  Mídia:         ativa a partir da geração {geracao_midia}"
+              f" ({pct_sens:.0f}% dissemina / {pct_combate:.0f}% combate)")
+
     print("=" * 60)
     print()
 
@@ -95,6 +113,10 @@ def executar_sequencial(
             mapa_influenciadores=mapa_influenciadores,
             offset_global=0,
         )
+
+        if usar_midia:
+            matriz = aplicar_midia(matriz, media_ativa=g >= geracao_midia,
+                                   prob_sensacionalista=prob_sensacionalista)
 
         tempo_proc = time.perf_counter() - t0
         cpu_pct = processo.cpu_percent() / psutil.cpu_count()
@@ -188,7 +210,6 @@ def gerar_graficos_sequencial(metricas, diretorio="metricas"):
 
 
 if __name__ == "__main__":
-    import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--linhas", type=int, default=100)
     parser.add_argument("--colunas", type=int, default=100)
@@ -196,7 +217,11 @@ if __name__ == "__main__":
     parser.add_argument("--espalhadores", type=float, default=0.05)
     parser.add_argument("--limiar", type=int, default=3)
     parser.add_argument("--semente", type=int, default=42)
+    parser.add_argument("--mostrar-grade", action="store_true")
     parser.add_argument("--influenciadores", type=bool, default=True)
+    parser.add_argument("--usar-midia", type=bool, default=True)
+    parser.add_argument("--geracao-midia", type=int, default=5)
+    parser.add_argument("--prob-sensacionalista", type=float, default=0.08)
     args = parser.parse_args()
 
     matriz, tempo, metricas = executar_sequencial(
@@ -206,7 +231,11 @@ if __name__ == "__main__":
         percentual_espalhadores=args.espalhadores,
         limiar=args.limiar,
         semente=args.semente,
+        mostrar_grade=args.mostrar_grade,
         usar_influenciadores=args.influenciadores,
+        usar_midia=args.usar_midia,
+        geracao_midia=args.geracao_midia,
+        prob_sensacionalista=args.prob_sensacionalista,
     )
     exportar_metricas_sequencial(metricas)
     gerar_graficos_sequencial(metricas)

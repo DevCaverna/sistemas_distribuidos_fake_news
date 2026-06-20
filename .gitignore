@@ -24,6 +24,10 @@ ENV/
 .mypy_cache/
 .pytest_cache/
 
+# Test artifacts
+.coverage
+mutants/
+
 # Experiment results (Opcional - caso queira ignorar relatórios locais)
 *.csv
 metricas/

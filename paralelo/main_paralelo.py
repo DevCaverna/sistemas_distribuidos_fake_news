@@ -27,6 +27,10 @@ def main():
     parser.add_argument("--limiar", type=int, default=3)
     parser.add_argument("--semente", type=int, default=42)
     parser.add_argument("--workers", type=int, default=2)
+    parser.add_argument("--influenciadores", type=bool, default=True)
+    parser.add_argument("--usar-midia", type=bool, default=True)
+    parser.add_argument("--geracao-midia", type=int, default=5)
+    parser.add_argument("--prob-sensacionalista", type=float, default=0.08)
     args = parser.parse_args()
 
     mestre = MestreParalelo(
@@ -37,6 +41,10 @@ def main():
         limiar=args.limiar,
         semente=args.semente,
         num_workers=args.workers,
+        usar_influenciadores=args.influenciadores,
+        usar_midia=args.usar_midia,
+        geracao_midia=args.geracao_midia,
+        prob_sensacionalista=args.prob_sensacionalista,
     )
 
     mestre.iniciar_workers()

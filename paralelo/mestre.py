@@ -16,12 +16,6 @@ from core.utils import (
 
 
 class MestreParalelo:
-    """Mestre que coordena workers executando em threads na mesma JVM.
-
-    A API e comportamento seguem a versão distribuída, mas todas as chamadas
-    são métodos locais e a comunicação é feita por estruturas de sincronização
-    (Condition / Lock) em memória.
-    """
 
     def __init__(
         self,
@@ -33,12 +27,18 @@ class MestreParalelo:
         semente,
         num_workers,
         usar_influenciadores=True,
+        usar_midia=True,
+        geracao_midia=5,
+        prob_sensacionalista=0.08,
     ):
         self.linhas = linhas
         self.colunas = colunas
         self.geracoes = geracoes
         self.limiar = limiar
         self.num_workers = num_workers
+        self.usar_midia = usar_midia
+        self.geracao_midia = geracao_midia
+        self.prob_sensacionalista = prob_sensacionalista
 
         self.matriz = criar_matriz(linhas, colunas, percentual_espalhadores, semente)
         self.fatias = fatiar_matriz(self.matriz, num_workers)
@@ -48,7 +48,6 @@ class MestreParalelo:
         if usar_influenciadores:
             self.mapa_influenciadores = criar_mapa_influenciadores(linhas, colunas)
 
-        # sincronização da barreira
         self._cond = threading.Condition()
         self._bordas = {}
         self._esp_por_worker = {}
@@ -57,12 +56,10 @@ class MestreParalelo:
         self._leitores = 0
         self._terminar = False
 
-        # resultado final
         self._fatias_finais = [None] * num_workers
         self._lock_resultado = threading.Lock()
         self._evento_resultado = threading.Event()
 
-        # métricas
         self._metricas_workers = [None] * num_workers
         self._lock_metricas = threading.Lock()
         self._evento_metricas = threading.Event()
@@ -71,7 +68,6 @@ class MestreParalelo:
         self._lock_bytes = threading.Lock()
 
     def iniciar_workers(self):
-        """Cria e inicia as threads workers. Retorna a lista de threads."""
         threads = []
         for wid in range(self.num_workers):
             fatia = self.fatias[wid]
@@ -82,17 +78,20 @@ class MestreParalelo:
             )
             threads.append(t)
             t.start()
-
         return threads
 
     def _worker_thread(self, worker_id, fatia, geracoes, limiar):
         from core.automato import (
-            ESPALHADOR, calcular_geracao, contar_estados,
+            ESPALHADOR,
+            aplicar_midia,
+            calcular_geracao,
+            contar_estados,
         )
 
         offset_global = self._offsets[worker_id]
         ghost_topo = None
         ghost_base = None
+        mapa_influenciadores = self.mapa_influenciadores
 
         metricas = MetricasWorker(worker_id)
 
@@ -103,10 +102,14 @@ class MestreParalelo:
                 borda_topo=ghost_topo,
                 borda_base=ghost_base,
                 limiar=limiar,
-                mapa_influenciadores=self.mapa_influenciadores,
+                mapa_influenciadores=mapa_influenciadores,
                 offset_global=offset_global,
             )
             metricas.finalizar_processamento()
+
+            if self.usar_midia:
+                fatia = aplicar_midia(fatia, media_ativa=g >= self.geracao_midia,
+                                        prob_sensacionalista=self.prob_sensacionalista)
 
             borda_topo = fatia[0]
             borda_base = fatia[-1]
@@ -126,7 +129,6 @@ class MestreParalelo:
             if resposta.get("terminar"):
                 break
 
-        self._metricas_workers[worker_id] = metricas
         with self._lock_metricas:
             self._metricas_workers[worker_id] = metricas
             if all(m is not None for m in self._metricas_workers):
@@ -139,6 +141,7 @@ class MestreParalelo:
         return [m.exportar() for m in self._metricas_workers]
 
     # --- API usada pelos workers (métodos sincronizados) -----------------
+
     def enviar_bordas(
         self, worker_id, geracao, borda_topo, borda_base, contagem_espalhadores
     ):

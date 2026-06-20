@@ -7,7 +7,7 @@ cada geracao, troca bordas (ghost rows) e coleta metricas de CPU/rede.
 
 import Pyro5.api
 
-from core.automato import ESPALHADOR, calcular_geracao, contar_estados
+from core.automato import ESPALHADOR, aplicar_midia, calcular_geracao, contar_estados
 from core.metricas import MetricasWorker
 
 
@@ -34,6 +34,9 @@ def executar_worker(host_ns="localhost", porta_ns=9090):
     ghost_topo = config["ghost_topo_inicial"]
     ghost_base = config["ghost_base_inicial"]
     offset_global = config["offset_global"]
+    usar_midia = config["usar_midia"]
+    geracao_midia = config["geracao_midia"]
+    prob_sensacionalista = config["prob_sensacionalista"]
 
     mapa_raw = config["mapa_influenciadores"]
     mapa_influenciadores = None
@@ -53,6 +56,10 @@ def executar_worker(host_ns="localhost", porta_ns=9090):
             offset_global=offset_global,
         )
         metricas.finalizar_processamento()
+
+        if usar_midia:
+            fatia = aplicar_midia(fatia, media_ativa=g >= geracao_midia,
+                                   prob_sensacionalista=prob_sensacionalista)
 
         borda_topo = fatia[0]
         borda_base = fatia[-1]
