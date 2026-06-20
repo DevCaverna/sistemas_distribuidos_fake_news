@@ -11,7 +11,7 @@ Contém funções para:
 import random
 import time
 
-from core.automato import IGNORANTE, ESPALHADOR, INATIVO
+from core.automato import ESPALHADOR, IGNORANTE, INATIVO
 
 
 def criar_matriz(linhas, colunas, percentual_espalhadores=0.02, semente=42):
@@ -50,7 +50,9 @@ def criar_matriz(linhas, colunas, percentual_espalhadores=0.02, semente=42):
     return matriz
 
 
-def criar_mapa_influenciadores(linhas, colunas, percentual=0.01, semente_influenciadores=123):
+def criar_mapa_influenciadores(
+    linhas, colunas, percentual=0.01, semente_influenciadores=123
+):
 
     rng = random.Random(semente_influenciadores)
 

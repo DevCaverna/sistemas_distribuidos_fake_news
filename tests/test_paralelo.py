@@ -24,6 +24,7 @@ PARAMS = dict(
     percentual_espalhadores=0.1,
     limiar=2,
     semente=42,
+    usar_midia=False,
 )
 
 TIMEOUT = 30  # segundos
@@ -50,7 +51,7 @@ def _executar_paralelo(num_workers, **params):
 class TestMestreParalelo:
     def test_1_worker_resultado_igual_sequencial(self):
         resultado_par, _ = _executar_paralelo(1, **PARAMS)
-        resultado_seq = _run_sequencial_puro(**PARAMS)
+        resultado_seq = _run_sequencial_puro(**{k: v for k, v in PARAMS.items() if k not in ("usar_midia", "geracao_midia", "prob_sensacionalista")})
         assert resultado_par == resultado_seq
 
     def test_2_workers_shape_correto(self):

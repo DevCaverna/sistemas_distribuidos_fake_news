@@ -1,6 +1,14 @@
+"""
+paralelo/mestre.py — Mestre para a versao paralela (threads).
+
+Coordena N threads worker que processam fatias da matriz em paralelo,
+sincronizando a troca de bordas (ghost rows) via barreira com Condition.
+"""
+
 import sys
 import threading
 
+from core.metricas import MetricasWorker
 from core.utils import (
     criar_matriz, criar_mapa_influenciadores,
     fatiar_matriz, remontar_matriz, calcular_offsets,
@@ -52,6 +60,10 @@ class MestreParalelo:
         self._lock_resultado = threading.Lock()
         self._evento_resultado = threading.Event()
 
+        self._metricas_workers = [None] * num_workers
+        self._lock_metricas = threading.Lock()
+        self._evento_metricas = threading.Event()
+
         self.bytes_trafegados = 0
         self._lock_bytes = threading.Lock()
 
@@ -76,12 +88,15 @@ class MestreParalelo:
             contar_estados,
         )
 
+        offset_global = self._offsets[worker_id]
         ghost_topo = None
         ghost_base = None
-        offset_global = self._offsets[worker_id]
         mapa_influenciadores = self.mapa_influenciadores
 
+        metricas = MetricasWorker(worker_id)
+
         for g in range(1, geracoes + 1):
+            metricas.iniciar_processamento()
             fatia = calcular_geracao(
                 fatia,
                 borda_topo=ghost_topo,
@@ -90,6 +105,7 @@ class MestreParalelo:
                 mapa_influenciadores=mapa_influenciadores,
                 offset_global=offset_global,
             )
+            metricas.finalizar_processamento()
 
             if self.usar_midia:
                 fatia = aplicar_midia(fatia, media_ativa=g >= self.geracao_midia,
@@ -101,9 +117,11 @@ class MestreParalelo:
             contagem = contar_estados(fatia)
             espalhadores = contagem[ESPALHADOR]
 
+            metricas.iniciar_comunicacao()
             self.enviar_bordas(worker_id, g, borda_topo, borda_base, espalhadores)
 
             resposta = self.obter_ghosts(worker_id, g)
+            metricas.finalizar_comunicacao()
 
             ghost_topo = resposta["ghost_topo"]
             ghost_base = resposta["ghost_base"]
@@ -111,7 +129,18 @@ class MestreParalelo:
             if resposta.get("terminar"):
                 break
 
+        with self._lock_metricas:
+            self._metricas_workers[worker_id] = metricas
+            if all(m is not None for m in self._metricas_workers):
+                self._evento_metricas.set()
+
         self.enviar_resultado(worker_id, fatia)
+
+    def aguardar_metricas(self):
+        self._evento_metricas.wait()
+        return [m.exportar() for m in self._metricas_workers]
+
+    # --- API usada pelos workers (métodos sincronizados) -----------------
 
     def enviar_bordas(
         self, worker_id, geracao, borda_topo, borda_base, contagem_espalhadores

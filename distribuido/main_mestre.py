@@ -1,3 +1,10 @@
+"""
+distribuido/main_mestre.py — Entry point do Mestre distribuido (Pyro5).
+
+Inicializa o orquestrador, registra-se no NameServer, aguarda workers,
+executa a simulacao e gera relatorios de metricas (CSV + graficos).
+"""
+
 import argparse
 import threading
 
@@ -5,11 +12,13 @@ import Pyro5.api
 import Pyro5.server
 
 from core.automato import contar_estados, IGNORANTE, ESPALHADOR, INATIVO
+from core.metricas import RelatorioMetricas
 from core.utils import Cronometro
 from distribuido.mestre import MestreDistribuido
 
 
 def main():
+    """Parser de argumentos e ponto de entrada do Mestre distribuido."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--linhas", type=int, default=100)
     parser.add_argument("--colunas", type=int, default=100)
@@ -65,6 +74,21 @@ def main():
     print(f"Ignorantes: {contagem[IGNORANTE]} ({contagem[IGNORANTE]/total*100:.2f}%)")
     print(f"Espalhadores: {contagem[ESPALHADOR]} ({contagem[ESPALHADOR]/total*100:.2f}%)")
     print(f"Inativos: {contagem[INATIVO]} ({contagem[INATIVO]/total*100:.2f}%)")
+
+    metricas_raw = mestre.aguardar_metricas()
+    relatorio = RelatorioMetricas(args.workers)
+
+    for metricas_worker in metricas_raw:
+        relatorio.adicionar_metricas_worker(metricas_worker)
+
+    relatorio.imprimir_resumo(crono.elapsed, rotulo="DISTRIBUÍDO (PYRO5)")
+
+    caminho_csv = relatorio.exportar_csv()
+    print(f"\n  CSV exportado: {caminho_csv}")
+
+    graficos = relatorio.gerar_graficos()
+    for g in graficos:
+        print(f"  Grafico gerado: {g}")
 
     try:
         ns.remove("mestre.fakenews")

@@ -1,11 +1,24 @@
+"""
+paralelo/main_paralelo.py — Entry point da versao paralela (threads).
+
+Executa a simulacao com pool de threads, coleta metricas (CPU, tempo)
+e gera graficos de telemetria.
+"""
+
 import argparse
 
 from core.automato import ESPALHADOR, IGNORANTE, INATIVO, contar_estados
+from core.metricas import RelatorioMetricas
 from core.utils import Cronometro
 from paralelo.mestre import MestreParalelo
 
 
 def main():
+    """Parser de argumentos e ponto de entrada da versao paralela.
+
+    Aceita os mesmos parametros de simulacao da versao sequencial,
+    acrescido de --workers para definir o tamanho do pool de threads.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--linhas", type=int, default=100)
     parser.add_argument("--colunas", type=int, default=100)
@@ -54,6 +67,14 @@ def main():
         f"Espalhadores: {contagem[ESPALHADOR]} ({contagem[ESPALHADOR] / total * 100:.2f}%)"
     )
     print(f"Inativos: {contagem[INATIVO]} ({contagem[INATIVO] / total * 100:.2f}%)")
+
+    metricas_raw = mestre.aguardar_metricas()
+    relatorio = RelatorioMetricas(args.workers, diretorio_saida="metricas")
+    for mw in metricas_raw:
+        relatorio.adicionar_metricas_worker(mw)
+    relatorio.imprimir_resumo(crono.elapsed, rotulo="PARALELO (THREADS)")
+    relatorio.exportar_csv()
+    relatorio.gerar_graficos()
 
 
 if __name__ == "__main__":
