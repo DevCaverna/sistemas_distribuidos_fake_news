@@ -377,6 +377,9 @@ def test_integracao_worker_full():
     """
     Teste end-to-end com processos reais.
     Requer: `pyro5-ns -p 9090` rodando em outro terminal.
-    Execute com: pytest tests/test_distribuido.py -v -m distribuido
     """
-    pytest.skip("Integração distribuída: inicie `pyro5-ns -p 9090` e remova o skip.")
+    try:
+        import Pyro5.api
+        ns = Pyro5.api.locate_ns(port=9090)
+    except Exception:
+        pytest.skip("NameServer nao encontrado na porta 9090")
