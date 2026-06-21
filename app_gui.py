@@ -1,4 +1,3 @@
-import os
 import sys
 import threading
 
@@ -88,6 +87,37 @@ class FakeNewsApp(ctk.CTk):
         row_idx += 1
 
         ctk.CTkLabel(
+            self.sidebar, text="Opcoes da Simulacao",
+            font=ctk.CTkFont(size=14, weight="bold"),
+        ).grid(row=row_idx, column=0, padx=20, pady=(0, 8), sticky="w")
+        row_idx += 1
+
+        self.var_influenciadores = ctk.BooleanVar(value=True)
+        self.sw_influenciadores = ctk.CTkSwitch(
+            self.sidebar, text="Ativar Influencers",
+            variable=self.var_influenciadores,
+            onvalue=True, offvalue=False,
+            font=ctk.CTkFont(size=12),
+        )
+        self.sw_influenciadores.grid(row=row_idx, column=0, padx=20, pady=4, sticky="w")
+        row_idx += 1
+
+        self.var_midia = ctk.BooleanVar(value=True)
+        self.sw_midia = ctk.CTkSwitch(
+            self.sidebar, text="Ativar Efeito de Midia",
+            variable=self.var_midia,
+            onvalue=True, offvalue=False,
+            font=ctk.CTkFont(size=12),
+        )
+        self.sw_midia.grid(row=row_idx, column=0, padx=20, pady=4, sticky="w")
+        row_idx += 1
+
+        ctk.CTkFrame(
+            self.sidebar, height=2, fg_color="gray30"
+        ).grid(row=row_idx, column=0, padx=20, pady=15, sticky="ew")
+        row_idx += 1
+
+        ctk.CTkLabel(
             self.sidebar, text="Comparativo de Desempenho",
             font=ctk.CTkFont(size=14, weight="bold"),
         ).grid(row=row_idx, column=0, padx=20, pady=(0, 5), sticky="w")
@@ -131,6 +161,8 @@ class FakeNewsApp(ctk.CTk):
                 "limiar": int(self.entradas["limiar"].get()),
                 "semente": int(self.entradas["semente"].get()),
                 "workers": int(self.entradas["workers"].get()),
+                "influenciadores": self.var_influenciadores.get(),
+                "midia": self.var_midia.get(),
             }
         except ValueError as e:
             print(f"[Erro] Verifique os valores: {e}")
@@ -141,6 +173,8 @@ class FakeNewsApp(ctk.CTk):
         self.btn_seq.configure(state=estado)
         self.btn_par.configure(state=estado)
         self.btn_dist.configure(state=estado)
+        self.sw_influenciadores.configure(state=estado)
+        self.sw_midia.configure(state=estado)
         self.is_running = not ativo
         if not ativo:
             self.progressbar.set(0)

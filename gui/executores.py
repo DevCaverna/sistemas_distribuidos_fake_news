@@ -36,6 +36,8 @@ def rodar_sequencial(app, params):
             limiar=params["limiar"],
             semente=params["semente"],
             mostrar_grade=False,
+            usar_influenciadores=params["influenciadores"],
+            usar_midia=params["midia"],
         )
         exportar_metricas_sequencial(metricas)
         caminhos = gerar_graficos_sequencial(metricas)
@@ -77,6 +79,8 @@ def rodar_paralelo(app, params):
             limiar=params["limiar"],
             semente=params["semente"],
             num_workers=params["workers"],
+            usar_influenciadores=params["influenciadores"],
+            usar_midia=params["midia"],
         )
         mestre.iniciar_workers()
 
@@ -166,6 +170,8 @@ def rodar_distribuido(app, params):
             percentual_espalhadores=params["espalhadores"],
             limiar=params["limiar"],
             semente=params["semente"],
+            usar_influenciadores=params["influenciadores"],
+            usar_midia=params["midia"],
         )
 
         daemon = Pyro5.server.Daemon(host="0.0.0.0")
