@@ -48,40 +48,33 @@ Suíte com **150 testes** (pytest) cobrindo desde funcoes puras do autômato ate
 
 ---
 
-## Invoacoes
+## Execução
 
 ### Sequencial
 
 ```bash
-python3 main_sequencial.py [--linhas 100] [--colunas 100] [--gerações 50] \
-    [--espalhadores 0.05] [--limiar 3] [--semente 42] \
-    [--influenciadores True] [--usar-midia True] \
-    [--geracao-midia 5] [--prob-sensacionalista 0.08]
+python3 main_sequencial.py --linhas 100 --colunas 100 --gerações 50 --espalhadores 0.05 --limiar 3 --semente 42 --influenciadores True --usar-midia True --geracao-midia 5 --prob-sensacionalista 0.08
 ```
 
 ### Paralela (Threads)
 
 ```bash
-python3 -m paralelo.main_paralelo --linhas 100 --colunas 100 \
-    --gerações 50 --workers 4 [--espalhadores 0.05] [--limiar 3] [--semente 42]
+python3 -m paralelo.main_paralelo --linhas 100 --colunas 100 --gerações 50 --workers 4 --espalhadores 0.05 --limiar 3 --semente 42
 ```
 
 ### Distribuida (Pyro5)
 
-**3 etapas** (terminais separados):
+**Workers primeiro, mestre descobre automaticamente**:
 
 ```bash
 # 1. Name Server
 python3 -m Pyro5.nameserver --port 9090
 
-# 2. Mestre
-python3 -m distribuido.main_mestre --linhas 100 --colunas 100 \
-    --gerações 50 --workers 2 [--host 0.0.0.0] [--porta-ns 9090] \
-    [--influenciadores True] [--usar-midia True] \
-    [--geracao-midia 5] [--prob-sensacionalista 0.08]
+# 2. Workers (um terminal cada) — retry até o mestre ficar disponível
+python3 -m distribuido.main_worker --host localhost --porta-ns 9090
 
-# 3. Workers (um terminal cada)
-python3 -m distribuido.main_worker [--host localhost] [--porta-ns 9090]
+# 3. Mestre (descobre workers registrados automaticamente)
+python3 -m distribuido.main_mestre --linhas 100 --colunas 100 --gerações 50 --timeout-descoberta 3 --host 0.0.0.0 --porta-ns 9090 --influenciadores True --usar-midia True --geracao-midia 5 --prob-sensacionalista 0.08
 ```
 
 ### Interface Grafica
