@@ -1,6 +1,6 @@
 # Versao Paralela (`paralelo/`)
 
-Implementacao paralela com `threading` nativo do Python, seguindo o padrao Mestre-Trabalhador.
+Implementação paralela com `threading` nativo do Python, seguindo o padrao Mestre-Trabalhador.
 
 ## Arquitetura
 
@@ -18,34 +18,34 @@ Classe `MestreParalelo` que:
 
 1. Cria a matriz global e divide em fatias horizontais (`fatiar_matriz`).
 2. Dispara `num_workers` threads, cada uma processando sua fatia.
-3. A cada geracao:
+3. A cada geração:
    - Envia bordas para cada worker (`enviar_bordas`).
-   - Workers calculam a nova geracao localmente.
+   - Workers calculam a nova geração localmente.
    - Workers retornam bordas para o mestre (`obter_ghosts`).
    - Mestre calcula ghost rows para cada worker (`_calcular_ghosts`).
-4. Ao final, coleta metricas e remonta a matriz.
+4. Ao final, coleta métricas e remonta a matriz.
 
-### Sincronizacao
+### Sincronização
 
 - `threading.Condition` e `threading.Lock` para coordenar a troca de bordas.
-- Barreira logica: todos os workers devem completar o calculo antes de iniciar a proxima geracao.
-- Ghost rows: cada worker recebe a ultima linha do worker anterior (ghost_topo) e a primeira linha do worker seguinte (ghost_base).
+- Barreira logica: todos os workers devem completar o calculo antes de iniciar a proxima geração.
+- Ghost rows: cada worker recebe a última linha do worker anterior (ghost_topo) e a primeira linha do worker seguinte (ghost_base).
 
 ### Worker (`_worker_thread`)
 
 Cada worker:
 
 1. Aguarda sua fatia inicial do mestre.
-2. Para cada geracao:
+2. Para cada geração:
    - Recebe ghost rows do mestre.
    - Executa `calcular_geracao(fatia, ..., ghost_topo, ghost_base)`.
-   - Mede metricas via `MetricasWorker` (CPU, tempo de processamento).
-   - Retorna bordas (primeira e ultima linha da fatia calculada) para o mestre.
-3. Retorna fatia final e metricas ao mestre.
+   - Mede métricas via `MetricasWorker` (CPU, tempo de processamento).
+   - Retorna bordas (primeira e última linha da fatia calculada) para o mestre.
+3. Retorna fatia final e métricas ao mestre.
 
 ### Divisao da Matriz
 
-A matriz e dividida horizontalmente em `num_workers` fatias de tamanho aproximadamente igual. Se a divisao nao for exata, o ultimo worker absorve as linhas restantes.
+A matriz e dividida horizontalmente em `num_workers` fatias de tamanho aproximadamente igual. Se a divisao nao for exata, o último worker absorve as linhas restantes.
 
 ### Determinismo
 
@@ -61,15 +61,15 @@ python3 -m paralelo.main_paralelo [--param valor]
 | ---------------- | ------- | ---------------------------------- |
 | `--linhas`       | 100     | Numero de linhas                   |
 | `--colunas`      | 100     | Numero de colunas                  |
-| `--geracoes`     | 50      | Numero de geracoes                 |
+| `--geracoes`     | 50      | Numero de gerações                 |
 | `--espalhadores` | 0.05    | Percentual inicial de espalhadores |
 | `--limiar`       | 3       | Limiar de contagio                 |
-| `--semente`      | 42      | Semente aleatoria                  |
+| `--semente`      | 42      | Semente aleatória                  |
 | `--workers`      | 2       | Numero de threads workers          |
 
 ## Arquivos Gerados
 
 | Arquivo                         | Conteudo                            |
 | ------------------------------- | ----------------------------------- |
-| `metricas/metricas_workers.csv` | Metricas por worker/geracao         |
-| `metricas/profiling_*.png`      | Graficos de CPU, latencia, gargalos |
+| `metricas/metricas_workers.csv` | Métricas por worker/geração         |
+| `metricas/profiling_*.png`      | Graficos de CPU, latência, gargalos |

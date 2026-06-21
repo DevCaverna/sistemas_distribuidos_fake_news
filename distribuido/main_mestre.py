@@ -1,11 +1,5 @@
-"""
-distribuido/main_mestre.py — Entry point do Mestre distribuido (Pyro5).
-
-Inicializa o orquestrador, registra-se no NameServer, aguarda workers,
-executa a simulacao e gera relatorios de metricas (CSV + graficos).
-"""
-
 import argparse
+import time
 import threading
 
 import Pyro5.api
@@ -18,7 +12,6 @@ from distribuido.mestre import MestreDistribuido
 
 
 def main():
-    """Parser de argumentos e ponto de entrada do Mestre distribuido."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--linhas", type=int, default=100)
     parser.add_argument("--colunas", type=int, default=100)
@@ -26,7 +19,7 @@ def main():
     parser.add_argument("--espalhadores", type=float, default=0.05)
     parser.add_argument("--limiar", type=int, default=3)
     parser.add_argument("--semente", type=int, default=42)
-    parser.add_argument("--workers", type=int, default=2)
+    parser.add_argument("--timeout-descoberta", type=int, default=3)
     parser.add_argument("--host", type=str, default="0.0.0.0")
     parser.add_argument("--porta-ns", type=int, default=9090)
     parser.add_argument("--influenciadores", type=bool, default=True)
@@ -42,11 +35,11 @@ def main():
         percentual_espalhadores=args.espalhadores,
         limiar=args.limiar,
         semente=args.semente,
-        num_workers=args.workers,
         usar_influenciadores=args.influenciadores,
         usar_midia=args.usar_midia,
         geracao_midia=args.geracao_midia,
         prob_sensacionalista=args.prob_sensacionalista,
+        timeout_descoberta=args.timeout_descoberta,
     )
 
     daemon = Pyro5.server.Daemon(host=args.host)
@@ -58,7 +51,14 @@ def main():
     thread_daemon = threading.Thread(target=daemon.requestLoop, daemon=True)
     thread_daemon.start()
 
-    mestre.aguardar_workers()
+    try:
+        qtd = mestre.inicializar(timeout=args.timeout_descoberta)
+    except RuntimeError as e:
+        print(f"[ERRO] {e}")
+        ns.remove("mestre.fakenews")
+        daemon.shutdown()
+        return
+    print(f"{qtd} workers encontrados. Iniciando simulacao...")
 
     crono = Cronometro()
     crono.iniciar()
@@ -76,7 +76,7 @@ def main():
     print(f"Inativos: {contagem[INATIVO]} ({contagem[INATIVO]/total*100:.2f}%)")
 
     metricas_raw = mestre.aguardar_metricas()
-    relatorio = RelatorioMetricas(args.workers)
+    relatorio = RelatorioMetricas(mestre.num_workers)
 
     for metricas_worker in metricas_raw:
         relatorio.adicionar_metricas_worker(metricas_worker)

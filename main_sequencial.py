@@ -1,7 +1,7 @@
 """
 main_sequencial.py — Entry point da versao sequencial refatorada.
 
-Coleta metricas de CPU e tempo por geracao para exportacao em CSV e graficos.
+Coleta métricas de CPU e tempo por geração para exportação em CSV e graficos.
 """
 
 import argparse

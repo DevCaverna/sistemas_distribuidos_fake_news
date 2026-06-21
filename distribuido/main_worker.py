@@ -1,7 +1,7 @@
 """
 distribuido/main_worker.py — Entry point do worker distribuido (Pyro5).
 
-Conecta-se ao NameServer, encontra o Mestre e executa o loop de simulacao.
+Conecta-se ao NameServer, encontra o Mestre e executa o loop de simulação.
 """
 
 import argparse

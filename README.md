@@ -1,11 +1,11 @@
-# Propagacao de Fake News em Sistemas Paralelos e Distribuidos
+# Propagação de Fake News em Sistemas Paralelos e Distribuidos
 
-Este projeto simula a propagacao de fake news em uma populacao representada por matriz bidimensional, inspirada em modelos de automatos celulares e vizinhanca de Moore. Evolui uma implementacao sequencial para versoes **paralela (Threads)** e **distribuida (Pyro5 RMI)**, com metricas de telemetria, interface grafica e testes automatizados.
+Este projeto simula a propagação de fake news em uma população representada por matriz bidimensional, inspirada em modelos de autômatos celulares e vizinhança de Moore. Evolui uma implementação sequencial para versões **paralela (Threads)** e **distribuida (Pyro5 RMI)**, com métricas de telemetria, interface grafica e testes automatizados.
 
 ## Estrutura
 
 ```
-core/                  # Nucleo reutilizavel (automato, metricas, utils, comparativo)
+core/                  # Nucleo reutilizavel (autômato, métricas, utils, comparativo)
 paralelo/              # Versao paralela com threads (Mestre-Trabalhador)
 distribuido/           # Versao distribuida via Pyro5 RMI
 gui/                   # Interface grafica (CustomTkinter + matplotlib)
@@ -14,74 +14,67 @@ main_sequencial.py     # Entry point sequencial
 FakeNews(Professor).py # Codigo original fornecido
 ```
 
-## Inovacoes
+## Inovações
 
 ### 1. Interface Grafica
 
-GUI integrada com CustomTkinter que unifica as tres modalidades em uma unica janela: botoes de execucao, console embutido, graficos de telemetria inline com redimensionamento e clique para tela cheia, indicadores de speedup na barra lateral. No modo Distribuido, a GUI inicia automaticamente workers locais e o Name Server como subprocessos.
+GUI integrada com CustomTkinter que unifica as tres modalidades em uma unica janela: botoes de execução, console embutido, graficos de telemetria inline com redimensionamento e clique para tela cheia, indicadores de speedup na barra lateral. No modo Distribuido, a GUI inicia automaticamente workers locais e o Name Server como subprocessos.
 
-[Documentacao detalhada](docs/gui.md)
+[Documentação detalhada](docs/gui.md)
 
 ### 2. Influenciador Digital
 
-Agente com raio de influencia 5x5 (ate 24 vizinhos) e probabilidade de transmissao entre 45% e 60% por tentativa. Simula perfis de alto impacto em redes sociais. Ativado via `--influenciadores`.
+Agente com raio de influência 5x5 (ate 24 vizinhos) e probabilidade de transmissao entre 45% e 60% por tentativa. Simula perfis de alto impacto em redes sociais. Ativado via `--influenciadores`.
 
-[Documentacao detalhada](docs/core/automato.md)
+[Documentação detalhada](docs/core/automato.md)
 
-### 3. Efeito Midia
+### 3. Efeito Mídia
 
-A partir de uma geracao configuravel, a midia comeca a atuar: 15% dos IGNORANTES sao alcancados, podendo se tornar ESPALHADOR (midia sensacionalista, `--prob-sensacionalista`) ou INATIVO (midia combate fake news). Configuravel via `--usar-midia`, `--geracao-midia` e `--prob-sensacionalista`.
+A partir de uma geração configuravel, a mídia comeca a atuar: 15% dos IGNORANTES sao alcançados, podendo se tornar ESPALHADOR (mídia sensacionalista, `--prob-sensacionalista`) ou INATIVO (mídia combate fake news). Configuravel via `--usar-midia`, `--geracao-midia` e `--prob-sensacionalista`.
 
-[Documentacao detalhada](docs/core/automato.md)
+[Documentação detalhada](docs/core/automato.md)
 
-### 4. Metricas e Telemetria
+### 4. Métricas e Telemetria
 
-Coleta de CPU (normalizada por nucleo), tempo de processamento, latencia de rede e bytes trafegados por worker/geracao. Exportacao para CSV e geracao de graficos (gargalos, profiling, evolucao temporal). Ao executar as tres modalidades, um grafico comparativo e gerado automaticamente.
+Coleta de CPU (normalizada por nucleo), tempo de processamento, latência de rede e bytes trafegados por worker/geração. Exportação para CSV e geração de graficos (gargalos, profiling, evolucao temporal). Ao executar as tres modalidades, um grafico comparativo e gerado automaticamente.
 
-[Documentacao detalhada](docs/core/metricas.md) | [Comparativo](docs/core/comparativo.md)
+[Documentação detalhada](docs/core/metricas.md) | [Comparativo](docs/core/comparativo.md)
 
 ### 5. Testes Automatizados
 
-Suíte com **150 testes** (pytest) cobrindo desde funcoes puras do automato ate integracao com processos reais (Pyro5). Teste de mutacao com **mutmut** atingindo 94% de deteccao (262 mortos / 16 sobreviventes) no modulo `core/`.
+Suíte com **150 testes** (pytest) cobrindo desde funcoes puras do autômato ate integracao com processos reais (Pyro5). Teste de mutacao com **mutmut** atingindo 94% de detecção (262 mortos / 16 sobreviventes) no modulo `core/`.
 
-[Documentacao detalhada](docs/testes.md)
+[Documentação detalhada](docs/testes.md)
 
 ---
 
-## Invoacoes
+## Execução
 
 ### Sequencial
 
 ```bash
-python3 main_sequencial.py [--linhas 100] [--colunas 100] [--geracoes 50] \
-    [--espalhadores 0.05] [--limiar 3] [--semente 42] \
-    [--influenciadores True] [--usar-midia True] \
-    [--geracao-midia 5] [--prob-sensacionalista 0.08]
+python3 main_sequencial.py --linhas 100 --colunas 100 --geracoes 50 --espalhadores 0.05 --limiar 3 --semente 42 --influenciadores True --usar-midia True --geracao-midia 5 --prob-sensacionalista 0.08
 ```
 
 ### Paralela (Threads)
 
 ```bash
-python3 -m paralelo.main_paralelo --linhas 100 --colunas 100 \
-    --geracoes 50 --workers 4 [--espalhadores 0.05] [--limiar 3] [--semente 42]
+python3 -m paralelo.main_paralelo --linhas 100 --colunas 100 --geracoes 50 --workers 4 --espalhadores 0.05 --limiar 3 --semente 42
 ```
 
 ### Distribuida (Pyro5)
 
-**3 etapas** (terminais separados):
+**Workers primeiro, mestre descobre automaticamente**:
 
 ```bash
 # 1. Name Server
 python3 -m Pyro5.nameserver --port 9090
 
-# 2. Mestre
-python3 -m distribuido.main_mestre --linhas 100 --colunas 100 \
-    --geracoes 50 --workers 2 [--host 0.0.0.0] [--porta-ns 9090] \
-    [--influenciadores True] [--usar-midia True] \
-    [--geracao-midia 5] [--prob-sensacionalista 0.08]
+# 2. Workers (um terminal cada) — retry até o mestre ficar disponível
+python3 -m distribuido.main_worker --host localhost --porta-ns 9090
 
-# 3. Workers (um terminal cada)
-python3 -m distribuido.main_worker [--host localhost] [--porta-ns 9090]
+# 3. Mestre (descobre workers registrados automaticamente)
+python3 -m distribuido.main_mestre --linhas 100 --colunas 100 --geracoes 50 --timeout-descoberta 3 --host 0.0.0.0 --porta-ns 9090 --influenciadores True --usar-midia True --geracao-midia 5 --prob-sensacionalista 0.08
 ```
 
 ### Interface Grafica
@@ -99,17 +92,11 @@ pytest tests/test_core_automato.py -v             # modulo especifico
 pytest tests/ --cov=. --cov-report=term-missing   # com cobertura
 ```
 
-### Docker (Distribuido)
-
-```bash
-docker compose up --scale worker=2 mestre-distribuido worker
-```
-
 ---
 
-## Documentacao por Modulo
+## Documentação por Modulo
 
-| Modulo                | Documentacao                                         |
+| Modulo                | Documentação                                         |
 | --------------------- | ---------------------------------------------------- |
 | `core/automato.py`    | [docs/core/automato.md](docs/core/automato.md)       |
 | `core/utils.py`       | [docs/core/utils.md](docs/core/utils.md)             |

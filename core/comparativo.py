@@ -1,7 +1,7 @@
 """
-core/comparativo.py — Graficos comparativos entre tipos de execucao.
+core/comparativo.py — Graficos comparativos entre tipos de execução.
 
-Armazena os resultados da ultima execucao de cada modalidade (sequencial,
+Armazena os resultados da última execução de cada modalidade (sequencial,
 paralela, distribuida) e gera graficos comparativos de tempo e CPU.
 """
 
@@ -19,7 +19,7 @@ DIRETORIO = "metricas"
 
 
 class ResultadoExecucao:
-    """Armazena o resultado de uma execucao para comparacao."""
+    """Armazena o resultado de uma execução para comparação."""
 
     def __init__(self, tipo, tempo_total, cpu_medio, rede_bytes=None):
         self.tipo = tipo
@@ -32,7 +32,7 @@ _resultados = {}
 
 
 def registrar_resultado(tipo, tempo_total, cpu_medio, rede_bytes=None):
-    """Registra o resultado da ultima execucao de um tipo."""
+    """Registra o resultado da última execução de um tipo."""
     _resultados[tipo] = ResultadoExecucao(tipo, tempo_total, cpu_medio, rede_bytes)
 
 

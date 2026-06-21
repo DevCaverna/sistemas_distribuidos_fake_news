@@ -2,7 +2,7 @@
 
 Framework de testes automatizados usando **pytest** e **mutmut** (teste de mutacao).
 
-## Execucao
+## Execução
 
 ```bash
 # Todos os testes (exceto distribuidos, que precisam de NS)
@@ -28,8 +28,8 @@ Testes marcados com `@pytest.mark.distribuido` requerem o nameserver Pyro5 rodan
 ```
 tests/
   conftest.py              — fixtures compartilhadas (matrizes, mapas)
-  test_core_automato.py    — automato: calcular_geracao, aplicar_midia, contar_estados
-  test_core_utils.py       — utils: criar_matriz, fatiar/remontar, cronometro
+  test_core_automato.py    — autômato: calcular_geracao, aplicar_midia, contar_estados
+  test_core_utils.py       — utils: criar_matriz, fatiar/remontar, cronômetro
   test_sequencial.py       — main_sequencial: fluxo completo, determinismo, CLI
   test_paralelo.py         — paralelo/mestre: MestreParalelo com 1 e 2 workers
   test_distribuido.py      — distribuido: metodos internos + worker mockado
@@ -39,19 +39,19 @@ tests/
 
 ### `test_core_automato.py`
 
-Testa funcoes **puras** de `core/automato.py` com matrizes pequenas construidas manualmente (1x1, 1x3, 3x3). Cada teste verifica uma unica regra de transicao:
+Testa funcoes **puras** de `core/automato.py` com matrizes pequenas construidas manualmente (1x1, 1x3, 3x3). Cada teste verifica uma unica regra de transição:
 
 - ESPALHADOR -> INATIVO
 - IGNORANTE com vizinhos suficientes -> ESPALHADOR
 - IGNORANTE sem vizinhos suficientes -> permanece IGNORANTE
 - Ghost rows afetando bordas (topo e base)
 - Pureza: funcao nao altera a matriz de entrada
-- Efeito midia: `aplicar_midia` com/sem midia ativa
+- Efeito mídia: `aplicar_midia` com/sem mídia ativa
 - Contagem de estados e influenciadores
 
 ### `test_core_utils.py`
 
-- Dimensoes corretas da matriz criada
+- Dimensões corretas da matriz criada
 - Identidade: `fatiar_matriz` + `remontar_matriz` = matriz original
 - Determinismo: mesma semente produz matriz identica
 - `Cronometro`: medicao de tempo
@@ -61,15 +61,15 @@ Testa funcoes **puras** de `core/automato.py` com matrizes pequenas construidas 
 Testa o **contrato** da funcao `executar_sequencial()`:
 
 - Retorna tupla de 3 elementos `(matriz, tempo, metricas)`
-- Dimensoes corretas da matriz final
+- Dimensões corretas da matriz final
 - Tempo positivo
 - Estados validos (apenas 0, 1, 2)
 - Determinismo com mesma semente
 - Com e sem influenciadores
-- Uma geracao
+- Uma geração
 - Parada antecipada quando nao ha espalhadores
-- Dimensoes nao quadradas
-- `limiar` alto reduz propagacao
+- Dimensões nao quadradas
+- `limiar` alto reduz propagação
 
 ### `test_paralelo.py`
 
@@ -82,13 +82,13 @@ Testa `MestreParalelo` diretamente (usa threads no mesmo processo):
 
 ### `test_distribuido.py`
 
-Testa `MestreDistribuido` e `WorkerDistribuido` sem Pyro5:
+Testa `MestreDistribuido` e `executar_worker` sem Pyro5:
 
 - **Mestre:** metodos internos (`_calcular_ghosts`, `obter_matriz_final`, `registrar_worker`) chamados diretamente, manipulando estado interno.
 - **Worker:** testado com `unittest.mock.patch` para substituir `Pyro5.api.Proxy` por `MagicMock`. Verifica:
   - URI correta do mestre.
-  - Protocolo de registro (`registrar_worker`).
-  - Contagem de chamadas por geracao.
+  - Protocolo de registro (`registrar_worker` e `aguardar_inicio`).
+  - Contagem de chamadas por geração.
   - Parada com `terminar=True`.
   - Deserializacao de mapa de influenciadores (lista -> set).
 
@@ -103,9 +103,9 @@ mutmut results   # resumo
 mutmut show <ID> # detalhe de um mutante
 ```
 
-**Resultado:** 262 mortos / 16 sobreviveram (94% de deteccao) em 278 mutantes gerados no modulo `core/`.
+**Resultado:** 262 mortos / 16 sobreviveram (94% de detecção) em 278 mutantes gerados no modulo `core/`.
 
-## Configuracao
+## Configuração
 
 `pytest.ini`:
 

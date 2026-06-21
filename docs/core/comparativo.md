@@ -1,6 +1,6 @@
 # Modulo `core/comparativo.py`
 
-Gera grafico de barras comparativo entre as tres modalidades de execucao (Sequencial, Paralela, Distribuida) apos todas terem sido executadas.
+Gera grafico de barras comparativo entre as tres modalidades de execução (Sequencial, Paralela, Distribuida) apos todas terem sido executadas.
 
 ## Variavel Global
 
@@ -10,12 +10,12 @@ Gera grafico de barras comparativo entre as tres modalidades de execucao (Sequen
 
 ### `registrar_resultado(tipo, tempo_total, cpu_medio, rede_bytes=0)`
 
-Registra o resultado da ultima execucao para um tipo de modalidade.
+Registra o resultado da última execução para um tipo de modalidade.
 
 | Parametro     | Tipo  | Descricao                                       |
 | ------------- | ----- | ----------------------------------------------- |
 | `tipo`        | str   | `"Sequencial"`, `"Paralela"` ou `"Distribuida"` |
-| `tempo_total` | float | Tempo total de execucao em segundos             |
+| `tempo_total` | float | Tempo total de execução em segundos             |
 | `cpu_medio`   | float | Uso medio de CPU (%)                            |
 | `rede_bytes`  | int   | Total de bytes trafegados (0 se N/A)            |
 
@@ -31,12 +31,12 @@ Gera um grafico de barras com 3 subplots (tempo, CPU, rede) comparando as modali
 
 ### `limpar_resultados()`
 
-Limpa todos os resultados registrados (para reiniciar a comparacao).
+Limpa todos os resultados registrados (para reiniciar a comparação).
 
 ## Funcionamento
 
 1. Cada runner (`rodar_sequencial`, `rodar_paralelo`, `rodar_distribuido`) chama `registrar_resultado()` ao finalizar.
-2. A GUI chama `tentar_exibir_comparativo()` apos cada execucao.
-3. Se `todos_executados()` retorna `True`, o grafico comparativo e gerado e exibido na aba de metricas.
+2. A GUI chama `tentar_exibir_comparativo()` apos cada execução.
+3. Se `todos_executados()` retorna `True`, o grafico comparativo e gerado e exibido na aba de métricas.
 
-O grafico e composto por tres barras lado a lado para cada metrica, facilitando a comparacao visual do desempenho entre as tres abordagens.
+O grafico e composto por tres barras lado a lado para cada métrica, facilitando a comparação visual do desempenho entre as tres abordagens.

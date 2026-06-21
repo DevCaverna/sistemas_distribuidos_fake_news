@@ -1,5 +1,5 @@
 """
-core/metricas.py — Telemetria e profiling do sistema distribuído.
+core/métricas.py — Telemetria e profiling do sistema distribuído.
 
 Coleta métricas detalhadas de cada Worker (CPU, tempo de processamento,
 latência de rede) e consolida no Master para exportação em CSV e geração
