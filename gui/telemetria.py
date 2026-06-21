@@ -21,7 +21,7 @@ def exibir_imagem_grafico(app, caminho, idx=0):
         fig.subplots_adjust(0, 0, 1, 1)
 
         col = idx % 2
-        row = idx // 2
+        row = (idx // 2) + 1  # row 0 reservado para o cabecalho
         figura_ref = {"fig": fig, "ratio": ratio}
 
         canvas = FigureCanvasTkAgg(fig, app.container_graficos)
@@ -117,6 +117,7 @@ def carregar_graficos_telemetria(app, caminhos_adicionais=None):
     ).grid(row=0, column=0, columnspan=2, pady=(30, 10))
 
     padrao = [
+        "comparativo.png",
         "gargalos_rede_vs_cpu.png",
         "processamento_vs_latencia.png",
         "profiling_tempos_barras.png",
@@ -130,6 +131,9 @@ def carregar_graficos_telemetria(app, caminhos_adicionais=None):
         if os.path.exists(caminho):
             exibir_imagem_grafico(app, caminho, idx=len(exibidos))
             exibidos.append(caminho)
+
+    print(f"[Telemetria] {len(exibidos)} grafico(s) carregado(s): "
+          f"{[os.path.basename(p) for p in exibidos]}")
 
     if caminhos_adicionais:
         for caminho in caminhos_adicionais:
@@ -154,6 +158,6 @@ def tentar_exibir_comparativo(app):
             "\n[Comparativo] Todos os tipos executados. "
             "Gerando grafico comparativo..."
         )
-        caminhos = gerar_comparativo()
-        if caminhos:
-            exibir_imagem_grafico(app, caminhos[0])
+        gerar_comparativo()
+        # O arquivo gerado (metricas/comparativo.png) sera exibido por
+        # carregar_graficos_telemetria, que o inclui no topo do padrao.
