@@ -11,8 +11,6 @@ Coletor executado dentro de cada worker (thread ou processo remoto). Registra po
 | `cpu_percent`         | %       | Uso de CPU do processo durante o calculo |
 | `tempo_processamento` | ms      | Tempo gasto na funcao `calcular_geracao` |
 | `tempo_comunicacao`   | ms      | Tempo gasto enviando/recebendo bordas    |
-| `bytes_enviados`      | bytes   | Dados enviados na troca de bordas        |
-| `bytes_recebidos`     | bytes   | Dados recebidos na troca de bordas       |
 
 **Metodos:**
 
@@ -21,7 +19,7 @@ Coletor executado dentro de cada worker (thread ou processo remoto). Registra po
 | `iniciar_processamento()`   | Marca início do calculo da geração atual      |
 | `finalizar_processamento()` | Registra `cpu_percent` e tempo de calculo     |
 | `iniciar_comunicacao()`     | Marca início da troca de bordas               |
-| `finalizar_comunicacao()`   | Registra tempo e bytes da comunicação         |
+| `finalizar_comunicacao()`   | Registra tempo de comunicação                 |
 | `exportar()`                | Retorna o registro da geração como dicionario |
 
 ## `RelatorioMetricas`
@@ -31,13 +29,13 @@ Consolida métricas de todos os workers e gera relatorios.
 | Metodo                                 | Descricao                                         |
 | -------------------------------------- | ------------------------------------------------- |
 | `adicionar_metricas_worker(lista)`     | Adiciona registros de um worker                   |
-| `exportar_csv()`                       | Salva `métricas/metricas_workers.csv`             |
+| `exportar_csv()`                       | Salva `metricas/metricas_workers.csv`             |
 | `gerar_graficos()`                     | Gera PNGs de telemetria (CPU, latência, gargalos) |
 | `imprimir_resumo(tempo_total, rotulo)` | Exibe tabela formatada no console                 |
 
 ### Graficos Gerados
 
-Todos salvos em `métricas/`:
+Todos salvos em `metricas/`:
 
 | Arquivo                         | Conteudo                                    |
 | ------------------------------- | ------------------------------------------- |

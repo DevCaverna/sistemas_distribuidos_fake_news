@@ -23,11 +23,11 @@ python3 main_sequencial.py [--param valor]
 | ------------------------ | ------- | ------------------------------------------- |
 | `--linhas`               | 100     | Numero de linhas                            |
 | `--colunas`              | 100     | Numero de colunas                           |
-| `--gerações`             | 50      | Numero de gerações                          |
+| `--geracoes`             | 50      | Numero de gerações                          |
 | `--espalhadores`         | 0.05    | Percentual inicial de espalhadores          |
 | `--limiar`               | 3       | Limiar de contagio (vizinhos necessarios)   |
 | `--semente`              | 42      | Semente aleatória para reproducibilidade    |
-| `--grade`                | flag    | Imprime a grade no console a cada geração   |
+| `--mostrar-grade`        | flag    | Imprime a grade no console a cada geração   |
 | `--influenciadores`      | True    | Ativa/desativa influenciadores digitais     |
 | `--usar-midia`           | True    | Ativa/desativa efeito mídia                 |
 | `--geracao-midia`        | 5       | Geração a partir da qual a mídia atua       |
@@ -43,11 +43,11 @@ A funcao `executar_sequencial()` retorna uma tupla de 3 elementos:
 
 - `matriz : list[list[int]]` — estado final da população.
 - `tempo_total : float` — tempo total de execução em segundos.
-- `métricas : list[dict]` — lista com dicts de métricas por geração.
+- `metricas : list[dict]` — lista com dicts de métricas por geração.
 
 ## Arquivos Gerados
 
 | Arquivo                            | Conteudo                           |
 | ---------------------------------- | ---------------------------------- |
-| `métricas/metricas_sequencial.csv` | CPU e tempo por geração            |
-| `métricas/metricas_sequencial.png` | Grafico de CPU e tempo por geração |
+| `metricas/metricas_sequencial.csv` | CPU e tempo por geração            |
+| `metricas/metricas_sequencial.png` | Grafico de CPU e tempo por geração |

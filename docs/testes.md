@@ -54,13 +54,13 @@ Testa funcoes **puras** de `core/automato.py` com matrizes pequenas construidas 
 - Dimensões corretas da matriz criada
 - Identidade: `fatiar_matriz` + `remontar_matriz` = matriz original
 - Determinismo: mesma semente produz matriz identica
-- `Cronômetro`: medicao de tempo
+- `Cronometro`: medicao de tempo
 
 ### `test_sequencial.py`
 
 Testa o **contrato** da funcao `executar_sequencial()`:
 
-- Retorna tupla de 3 elementos `(matriz, tempo, métricas)`
+- Retorna tupla de 3 elementos `(matriz, tempo, metricas)`
 - Dimensões corretas da matriz final
 - Tempo positivo
 - Estados validos (apenas 0, 1, 2)
@@ -82,12 +82,12 @@ Testa `MestreParalelo` diretamente (usa threads no mesmo processo):
 
 ### `test_distribuido.py`
 
-Testa `MestreDistribuido` e `WorkerDistribuido` sem Pyro5:
+Testa `MestreDistribuido` e `executar_worker` sem Pyro5:
 
 - **Mestre:** metodos internos (`_calcular_ghosts`, `obter_matriz_final`, `registrar_worker`) chamados diretamente, manipulando estado interno.
 - **Worker:** testado com `unittest.mock.patch` para substituir `Pyro5.api.Proxy` por `MagicMock`. Verifica:
   - URI correta do mestre.
-  - Protocolo de registro (`registrar_worker`).
+  - Protocolo de registro (`registrar_worker` e `aguardar_inicio`).
   - Contagem de chamadas por geração.
   - Parada com `terminar=True`.
   - Deserializacao de mapa de influenciadores (lista -> set).

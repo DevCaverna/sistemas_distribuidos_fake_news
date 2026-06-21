@@ -1,12 +1,6 @@
-"""
-distribuido/mestre.py — Orquestrador remoto (Mestre) para a versao distribuida.
-
-Expõe um objeto Pyro5 que coordena N workers remotos, gerencia a troca de
-bordas (ghost rows) entre gerações e coleta métricas de telemetria.
-"""
-
 import sys
 import threading
+import time
 
 import Pyro5.api
 import Pyro5.server
@@ -20,25 +14,20 @@ from core.utils import (
 
 @Pyro5.api.expose
 class MestreDistribuido:
-    """Orquestrador remoto da simulação distribuida.
-
-    Registra-se no Pyro5 NameServer, aguarda a conexao de N workers,
-    coordena a troca de bordas a cada geração (barreira de rede) e
-    coleta métricas de todos os workers ao final.
-    """
-
     def __init__(self, linhas, colunas, geracoes, percentual_espalhadores,
-                 limiar, semente, num_workers, usar_influenciadores=True,
-                 usar_midia=True, geracao_midia=5, prob_sensacionalista=0.08):
+                 limiar, semente, usar_influenciadores=True,
+                 usar_midia=True, geracao_midia=5, prob_sensacionalista=0.08,
+                 timeout_descoberta=3):
         self.linhas = linhas
         self.colunas = colunas
         self.geracoes = geracoes
         self.limiar = limiar
-        self.num_workers = num_workers
+        self.timeout_descoberta = timeout_descoberta
 
         self.matriz = criar_matriz(linhas, colunas, percentual_espalhadores, semente)
-        self.fatias = fatiar_matriz(self.matriz, num_workers)
-        self._offsets = calcular_offsets(linhas, num_workers)
+        self.num_workers = 0
+        self.fatias = None
+        self._offsets = None
 
         self.mapa_influenciadores = None
         if usar_influenciadores:
@@ -50,7 +39,8 @@ class MestreDistribuido:
 
         self._workers_registrados = 0
         self._lock_registro = threading.Lock()
-        self._evento_todos = threading.Event()
+        self._inicializado = False
+        self._evento_inicio = threading.Event()
 
         self._cond = threading.Condition()
         self._bordas = {}
@@ -60,38 +50,68 @@ class MestreDistribuido:
         self._leitores = 0
         self._terminar = False
 
-        self._fatias_finais = [None] * num_workers
+        self._fatias_finais = []
         self._lock_resultado = threading.Lock()
         self._evento_resultado = threading.Event()
 
-        self._metricas_workers = [None] * num_workers
+        self._metricas_workers = []
         self._lock_metricas = threading.Lock()
         self._evento_metricas = threading.Event()
 
         self.bytes_trafegados = 0
         self._lock_bytes = threading.Lock()
 
-    def registrar_worker(self):
-        """Registra um worker remoto, atribui um ID e retorna a configuração.
+        self._configs = {}
 
-        Retorna um dicionario com: worker_id, fatia, gerações, limiar,
-        ghost_topo_inicial, ghost_base_inicial, offset_global,
-        mapa_influenciadores, num_workers.
-        """
+    def registrar_worker(self):
         with self._lock_registro:
+            if self._inicializado:
+                raise RuntimeError("Registro fechado")
             wid = self._workers_registrados
             self._workers_registrados += 1
+            return {"worker_id": wid}
 
+    def aguardar_inicio(self, worker_id):
+        self._evento_inicio.wait()
+        if worker_id not in self._configs:
+            raise RuntimeError(
+                f"Worker {worker_id} registrou-se apos a inicializacao"
+            )
+        return self._configs[worker_id]
+
+    def inicializar(self, timeout=None):
+        timeout = timeout if timeout is not None else self.timeout_descoberta
+        deadline = time.time() + timeout
+        while time.time() < deadline and self._workers_registrados == 0:
+            time.sleep(0.1)
+
+        if timeout > 0 and self._workers_registrados > 0:
+            time.sleep(0.5)
+
+        with self._lock_registro:
+            self.num_workers = self._workers_registrados
+            self._inicializado = True
+
+        if self.num_workers == 0:
+            raise RuntimeError("Nenhum worker registrado")
+
+        self.fatias = fatiar_matriz(self.matriz, self.num_workers)
+        self._offsets = calcular_offsets(self.linhas, self.num_workers)
+
+        self._fatias_finais = [None] * self.num_workers
+        self._metricas_workers = [None] * self.num_workers
+
+        for wid in range(self.num_workers):
             fatia = self.fatias[wid]
 
             ghost_topo = self.fatias[wid - 1][-1] if wid > 0 else None
             ghost_base = self.fatias[wid + 1][0] if wid < self.num_workers - 1 else None
 
-            influenciadores_serializavel = None
+            mapa_serial = None
             if self.mapa_influenciadores is not None:
-                influenciadores_serializavel = list(self.mapa_influenciadores)
+                mapa_serial = list(self.mapa_influenciadores)
 
-            config = {
+            self._configs[wid] = {
                 "worker_id": wid,
                 "fatia": fatia,
                 "geracoes": self.geracoes,
@@ -100,24 +120,17 @@ class MestreDistribuido:
                 "ghost_topo_inicial": ghost_topo,
                 "ghost_base_inicial": ghost_base,
                 "offset_global": self._offsets[wid],
-                "mapa_influenciadores": influenciadores_serializavel,
+                "mapa_influenciadores": mapa_serial,
                 "usar_midia": self.usar_midia,
                 "geracao_midia": self.geracao_midia,
                 "prob_sensacionalista": self.prob_sensacionalista,
             }
 
-            if self._workers_registrados == self.num_workers:
-                self._evento_todos.set()
-
-            return config
-
-    def aguardar_workers(self):
-        """Bloqueia ate que todos os workers tenham se registrado."""
-        self._evento_todos.wait()
+        self._evento_inicio.set()
+        return self.num_workers
 
     def enviar_bordas(self, worker_id, geracao, borda_topo, borda_base,
                       contagem_espalhadores):
-        """Recebe bordas de um worker e, quando todos enviaram, computa ghosts."""
         tamanho = sys.getsizeof(borda_topo) + sys.getsizeof(borda_base)
         with self._lock_bytes:
             self.bytes_trafegados += tamanho
@@ -137,14 +150,15 @@ class MestreDistribuido:
                 self._cond.notify_all()
 
     def obter_ghosts(self, worker_id, geracao):
-        """Retorna as linhas ghost (bordas vizinhas) para o worker."""
         with self._cond:
             while self._geracao_pronta < geracao:
                 self._cond.wait()
 
             ghost_topo, ghost_base = self._ghosts.get(worker_id, (None, None))
 
-            tamanho = sum(sys.getsizeof(g) for g in (ghost_topo, ghost_base) if g is not None)
+            tamanho = sum(
+                sys.getsizeof(g) for g in (ghost_topo, ghost_base) if g is not None
+            )
             with self._lock_bytes:
                 self.bytes_trafegados += tamanho
 
@@ -163,7 +177,6 @@ class MestreDistribuido:
             }
 
     def _calcular_ghosts(self):
-        """Computa as linhas ghost para cada worker a partir das bordas recebidas."""
         self._ghosts.clear()
         for wid in range(self.num_workers):
             ghost_topo = self._bordas[wid - 1][1] if wid > 0 else None
@@ -171,28 +184,23 @@ class MestreDistribuido:
             self._ghosts[wid] = (ghost_topo, ghost_base)
 
     def enviar_resultado(self, worker_id, fatia_final):
-        """Recebe a fatia final de um worker ao termino da simulação."""
         with self._lock_resultado:
             self._fatias_finais[worker_id] = fatia_final
             if all(f is not None for f in self._fatias_finais):
                 self._evento_resultado.set()
 
     def aguardar_resultado(self):
-        """Bloqueia ate que todos os workers tenham enviado seus resultados."""
         self._evento_resultado.wait()
 
     def obter_matriz_final(self):
-        """Remonta a matriz completa a partir das fatias finais dos workers."""
         return remontar_matriz(self._fatias_finais)
 
     def enviar_metricas(self, worker_id, metricas):
-        """Recebe as métricas de um worker ao final da execução."""
         with self._lock_metricas:
             self._metricas_workers[worker_id] = metricas
             if all(m is not None for m in self._metricas_workers):
                 self._evento_metricas.set()
 
     def aguardar_metricas(self):
-        """Bloqueia ate que todos os workers tenham enviado suas métricas."""
         self._evento_metricas.wait()
         return self._metricas_workers

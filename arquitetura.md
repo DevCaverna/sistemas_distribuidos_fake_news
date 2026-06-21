@@ -25,12 +25,14 @@ A matriz bidimensional (população) é fatiada horizontalmente.
 
 Processo independente que atua como serviço de descoberta. O Mestre registra seu objeto remoto com um nome simbólico (`mestre.fakenews`), e os Workers o localizam através desse nome, sem precisar conhecer IP/porta do Mestre antecipadamente.
 
+### 3.2. Mestre (`MestreDistribuido`)
+
 Orquestrador central responsável por:
 
 1. Inicializar a matriz completa com o estado inicial (Ignorantes e Espalhadores).
-2. Fatiar a matriz horizontalmente em `W` partes.
-3. Registrar-se no Name Server e expor um objeto remoto via Pyro5.
-4. Aguardar que todos os `W` Workers se registrem (`registrar_worker`). Cada registro retorna a fatia inicial e as ghost rows iniciais.
+2. Registrar-se no Name Server e expor um objeto remoto via Pyro5.
+3. Receber registros de workers via `registrar_worker()`.
+4. Ao chamar `inicializar()`, descobrir dinamicamente quantos workers se registraram, fatiar a matriz em `W` partes e preparar as configurações iniciais.
 5. **Sincronizador de Geração (Barreira):** A cada geração:
    - Receber as bordas superior e inferior de cada Worker (`enviar_bordas`).
    - Quando todos os `W` Workers tiverem enviado, cruzar os dados (a base do Worker X vira ghost_topo do Worker X+1, e o topo do Worker X vira ghost_base do Worker X-1).
@@ -45,24 +47,26 @@ Processo isolado (pode rodar em terminais ou máquinas diferentes) que processa 
 **Fluxo:**
 
 1. Obter um proxy do Mestre via Pyro5 Name Server.
-2. Registrar-se e receber sua submatriz, ghost rows iniciais, mapa de influenciadores e offset global.
-3. Executar o loop de gerações.
-4. Ao fim de cada geração local, enviar as fronteiras (sua primeira e última linha real) para o Mestre.
-5. Atualizar as Ghost Rows com os dados recebidos do Mestre antes de calcular a próxima geração.
-6. Retornar a submatriz final processada.
+2. Registrar-se via `registrar_worker()` e receber um `worker_id`.
+3. Chamar `aguardar_inicio(worker_id)` para receber sua submatriz, ghost rows iniciais, mapa de influenciadores e offset global quando o Mestre finalizar a descoberta.
+4. Executar o loop de gerações.
+5. Ao fim de cada geração local, enviar as fronteiras (sua primeira e última linha real) para o Mestre.
+6. Atualizar as Ghost Rows com os dados recebidos do Mestre antes de calcular a próxima geração.
+7. Retornar a submatriz final processada.
 
 ## 4. Protocolo de Comunicação (RMI via Pyro5)
 
 A comunicação é realizada via invocação de métodos remotos. O Mestre expõe os seguintes métodos:
 
-- `registrar_worker()` → Retorna config inicial (fatia, ghost rows, limiar, mapa de influenciadores, offset global).
-- `enviar_bordas(worker_id, geração, borda_topo, borda_base, contagem_espalhadores)` → Worker envia fronteiras atualizadas.
-- `obter_ghosts(worker_id, geração)` → Worker recebe ghost rows cruzadas dos vizinhos.
+- `registrar_worker()` → Registra um worker e retorna seu `worker_id`.
+- `aguardar_inicio(worker_id)` → Bloqueia até a descoberta terminar e retorna a config inicial (fatia, ghost rows, limiar, mapa de influenciadores, offset global).
+- `enviar_bordas(worker_id, geracao, borda_topo, borda_base, contagem_espalhadores)` → Worker envia fronteiras atualizadas.
+- `obter_ghosts(worker_id, geracao)` → Worker recebe ghost rows cruzadas dos vizinhos.
 - `enviar_resultado(worker_id, fatia_final)` → Worker envia submatriz final processada.
 
 1. Iniciar o **Pyro5 Name Server** (`python3 -m Pyro5.nameserver`).
-2. Iniciar o **Mestre** — ele cria a matriz, fatia, e se registra no Name Server.
-3. Iniciar os **Workers** (um ou mais processos/terminais) — cada um se conecta ao Name Server, obtém o proxy do Mestre e chama `registrar_worker()`.
+2. Iniciar os **Workers** (um ou mais processos/terminais) — cada um tenta obter o proxy do Mestre até ele ficar disponível.
+3. Iniciar o **Mestre** — ele cria a matriz, registra-se no Name Server, recebe os workers registrados e inicia a simulação com todos os disponíveis.
 
 ### Por Geração
 
@@ -80,7 +84,7 @@ A comunicação é realizada via invocação de métodos remotos. O Mestre expõ
 
 ## 6. Coleta de Métricas (Requisitos de Avaliação)
 
-- **Tempo Total de Processamento:** `time.perf_counter()` no Mestre (antes de `aguardar_workers` até após `aguardar_resultado`).
+- **Tempo Total de Processamento:** `time.perf_counter()` no Mestre (apos `inicializar` até após `aguardar_resultado`).
 - **Custo de Comunicação:** O Mestre incrementa `bytes_trafegados` com `sys.getsizeof()` dos dados de borda trafegados a cada chamada de `enviar_bordas` e `obter_ghosts`.
 
 ## 7. Estratégia para Melhorias (Diferencial / Inovação)
@@ -92,7 +96,7 @@ Para buscar a pontuação extra de inovações, a arquitetura permite as seguint
   - _Distribuição:_ 1% da população total é marcada estaticamente como influenciador no início da simulação (`criar_mapa_influenciadores` em `core/utils.py`).
   - _Vizinhança Estendida:_ Quando um influenciador está no estado ESPALHADOR, seu raio de influência abrange um bloco 5×5 (até 24 vizinhos), ao invés da vizinhança de Moore padrão (3×3, 8 vizinhos).
   - _Transmissão Probabilística:_ A cada tentativa de conversão de um IGNORANTE dentro do bloco 5×5, a probabilidade é sorteada uniformemente entre 45% e 60%.
-  - _Transporte Distribuído:_ O mapa de influenciadores é serializado como lista de tuplas e enviado pelo Mestre a cada Worker na fase `INIT` (`registrar_worker`). O Worker reconstrói o `set` localmente e o repassa a `calcular_geracao` junto com o `offset_global` da sua fatia.
+  - _Transporte Distribuído:_ O mapa de influenciadores é serializado como lista de tuplas e enviado pelo Mestre a cada Worker na fase de inicialização (`aguardar_inicio`). O Worker reconstrói o `set` localmente e o repassa a `calcular_geracao` junto com o `offset_global` da sua fatia.
 - **Efeito Mídia:**
   - _Gatilho:_ A mídia começa a atuar a partir de uma geração configurável (`--geracao-midia`, padrão 5), sendo ativada individualmente por worker com base no número da geração — não requer sincronização global.
   - _Funcionamento:_ Em cada geração posterior ao gatilho, **15% das células IGNORANTE** são alcançadas pela mídia. Destas, `prob_sensacionalista * 100%` de chance de se tornar ESPALHADOR (mídia sensacionalista que dissemina a fake news; padrão 8%) e `(1 - prob_sensacionalista) * 100%` de chance de se tornar INATIVO (mídia responsável que combate a desinformação; padrão 92%). A probabilidade é configurável via `--prob-sensacionalista`.

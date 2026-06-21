@@ -139,30 +139,6 @@ def rodar_distribuido(app, params):
         _iniciar_leitor_stderr(ns_proc, "[NameServer]")
         time.sleep(1.5)
 
-        print("=> Iniciando Mestre Distribuido...")
-        mestre = MestreDistribuido(
-            linhas=params["linhas"],
-            colunas=params["colunas"],
-            geracoes=params["geracoes"],
-            percentual_espalhadores=params["espalhadores"],
-            limiar=params["limiar"],
-            semente=params["semente"],
-            num_workers=params["workers"],
-        )
-
-        daemon = Pyro5.server.Daemon(host="0.0.0.0")
-        uri = daemon.register(mestre, objectId="mestre.fakenews.obj")
-
-        try:
-            ns = Pyro5.api.locate_ns(port=9090)
-            ns.register("mestre.fakenews", uri)
-        except Exception as e:
-            print(f"[ERRO] Falha no NameServer: {e}")
-            return
-
-        thread_daemon = threading.Thread(target=daemon.requestLoop, daemon=True)
-        thread_daemon.start()
-
         print(f"=> Iniciando {params['workers']} workers...")
         for _ in range(params["workers"]):
             proc = subprocess.Popen(
@@ -182,8 +158,31 @@ def rodar_distribuido(app, params):
             app._processos_worker.append(proc)
             _iniciar_leitor_stderr(proc, "[Worker]")
 
-        mestre.aguardar_workers()
-        print("Todos os workers conectados! Processando...")
+        print("=> Iniciando Mestre Distribuido...")
+        mestre = MestreDistribuido(
+            linhas=params["linhas"],
+            colunas=params["colunas"],
+            geracoes=params["geracoes"],
+            percentual_espalhadores=params["espalhadores"],
+            limiar=params["limiar"],
+            semente=params["semente"],
+        )
+
+        daemon = Pyro5.server.Daemon(host="0.0.0.0")
+        uri = daemon.register(mestre, objectId="mestre.fakenews.obj")
+
+        try:
+            ns = Pyro5.api.locate_ns(port=9090)
+            ns.register("mestre.fakenews", uri)
+        except Exception as e:
+            print(f"[ERRO] Falha no NameServer: {e}")
+            return
+
+        thread_daemon = threading.Thread(target=daemon.requestLoop, daemon=True)
+        thread_daemon.start()
+
+        qtd = mestre.inicializar(timeout=10)
+        print(f"{qtd} workers encontrados! Processando...")
 
         crono = Cronometro()
         crono.iniciar()
@@ -195,7 +194,7 @@ def rodar_distribuido(app, params):
         print("Processamento concluido. Gerando relatorios...")
 
         metricas_raw = mestre.aguardar_metricas()
-        relatorio = RelatorioMetricas(params["workers"])
+        relatorio = RelatorioMetricas(mestre.num_workers)
         for mw in metricas_raw:
             relatorio.adicionar_metricas_worker(mw)
         relatorio.imprimir_resumo(crono.elapsed)

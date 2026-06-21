@@ -1,9 +1,4 @@
-"""
-distribuido/worker.py — Cliente worker da versao distribuida (Pyro5).
-
-Conecta-se ao Mestre via Pyro5, recebe sua fatia da matriz, processa
-cada geração, troca bordas (ghost rows) e coleta métricas de CPU/rede.
-"""
+import time
 
 import Pyro5.api
 
@@ -11,21 +6,21 @@ from core.automato import ESPALHADOR, aplicar_midia, calcular_geracao, contar_es
 from core.metricas import MetricasWorker
 
 
-def executar_worker(host_ns="localhost", porta_ns=9090):
-    """Executa o loop de simulação de um worker remoto.
+def executar_worker(host_ns="localhost", porta_ns=9090, max_tentativas=0, intervalo=1):
+    while True:
+        try:
+            mestre = Pyro5.api.Proxy(
+                f"PYRONAME:mestre.fakenews@{host_ns}:{porta_ns}"
+            )
+            resp = mestre.registrar_worker()
+            break
+        except Exception:
+            max_tentativas -= 1
+            if max_tentativas == 0:
+                raise
+            time.sleep(intervalo)
 
-    Etapas:
-    1. Conecta-se ao Mestre via NameServer (PYRONAME)
-    2. Registra-se e obtem configuração (fatia, ghosts iniciais, etc.)
-    3. Aguarda sinal do Mestre para comecar
-    4. Para cada geração: processa a fatia, troca bordas via Mestre
-    5. Envia resultado final e métricas ao Mestre
-    """
-    mestre = Pyro5.api.Proxy(f"PYRONAME:mestre.fakenews@{host_ns}:{porta_ns}")
-
-    config = mestre.registrar_worker()
-
-    mestre.aguardar_workers()
+    config = mestre.aguardar_inicio(resp["worker_id"])
 
     worker_id = config["worker_id"]
     fatia = config["fatia"]

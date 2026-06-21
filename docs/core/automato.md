@@ -14,7 +14,7 @@ Cada celula representa um indivíduo da população:
 
 ## Funcoes Principais
 
-### `calcular_geracao(fatia, mapa_influenciadores, ghost_topo, ghost_base, ...)`
+### `calcular_geracao(fatia, borda_topo=None, borda_base=None, limiar=2, mapa_influenciadores=None, offset_global=0)`
 
 Funcao **pura** — nao altera a fatia original. Constroi uma matriz de trabalho com ghost rows (se fornecidas) e retorna a nova geração.
 
@@ -30,15 +30,14 @@ Funcao **pura** — nao altera a fatia original. Constroi uma matriz de trabalho
 
 **Parametros:**
 
-| Parametro              | Tipo   | Default  | Descricao                                             |
-| ---------------------- | ------ | -------- | ----------------------------------------------------- | ----------------------------------------- |
-| `fatia`                | list   | —        | Submatriz a processar                                 |
-| `mapa_influenciadores` | set    | —        | Conjunto de `(linha, col)` dos influenciadores        |
-| `ghost_topo`           | list   | None     | None                                                  | Linha de borda superior (fatia anterior)  |
-| `ghost_base`           | list   | None     | None                                                  | Linha de borda inferior (fatia posterior) |
-| `limiar`               | int    | 3        | Vizinhos necessarios para conversao                   |
-| `rng`                  | Random | `random` | Gerador de numeros aleatorios                         |
-| `linha_inicial`        | int    | 0        | Offset global da fatia (para mapa de influenciadores) |
+| Parametro              | Tipo | Default | Descricao                                             |
+| ---------------------- | ---- | ------- | ----------------------------------------------------- |
+| `fatia`                | list | —       | Submatriz a processar                                 |
+| `borda_topo`           | list | None    | Linha de borda superior (fatia anterior)              |
+| `borda_base`           | list | None    | Linha de borda inferior (fatia posterior)             |
+| `limiar`               | int  | 2       | Vizinhos necessarios para conversao                   |
+| `mapa_influenciadores` | set  | None    | Conjunto de `(linha, col)` dos influenciadores        |
+| `offset_global`        | int  | 0       | Offset global da fatia (para mapa de influenciadores) |
 
 **Retorno:** `list[list[int]]` — nova submatriz calculada.
 
@@ -67,15 +66,9 @@ Conta quantas celulas de cada estado existem em uma (sub)matriz.
 
 **Retorno:** `dict[int, int]` — `{IGNORANTE: N, ESPALHADOR: N, INATIVO: N}`.
 
-### `contar_totais(matriz, mapa_influenciadores)`
+### Influenciadores
 
-Igual a `contar_estados`, mas tambem separa a contagem de influenciadores.
-
-**Retorno:** `dict[int, int]` — incluindo a chave `"influenciadores"`.
-
-### `criar_mapa_influenciadores(linhas, colunas, semente)`
-
-Distribui estaticamente 1% da população como influenciadores (mapeamento determinístico baseado em `semente`).
+O mapa de influenciadores e criado por `criar_mapa_influenciadores(linhas, colunas, percentual=0.01, semente_influenciadores=123)` em `core/utils.py`.
 
 **Retorno:** `set[tuple[int, int]]`.
 

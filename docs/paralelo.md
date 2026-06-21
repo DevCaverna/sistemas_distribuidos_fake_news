@@ -61,7 +61,7 @@ python3 -m paralelo.main_paralelo [--param valor]
 | ---------------- | ------- | ---------------------------------- |
 | `--linhas`       | 100     | Numero de linhas                   |
 | `--colunas`      | 100     | Numero de colunas                  |
-| `--gerações`     | 50      | Numero de gerações                 |
+| `--geracoes`     | 50      | Numero de gerações                 |
 | `--espalhadores` | 0.05    | Percentual inicial de espalhadores |
 | `--limiar`       | 3       | Limiar de contagio                 |
 | `--semente`      | 42      | Semente aleatória                  |
@@ -71,5 +71,5 @@ python3 -m paralelo.main_paralelo [--param valor]
 
 | Arquivo                         | Conteudo                            |
 | ------------------------------- | ----------------------------------- |
-| `métricas/metricas_workers.csv` | Métricas por worker/geração         |
-| `métricas/profiling_*.png`      | Graficos de CPU, latência, gargalos |
+| `metricas/metricas_workers.csv` | Métricas por worker/geração         |
+| `metricas/profiling_*.png`      | Graficos de CPU, latência, gargalos |
