@@ -27,7 +27,7 @@ Retorna `True` se as tres modalidades ja foram registradas na sessao atual.
 
 Gera um grafico de barras com 3 subplots (tempo, CPU, rede) comparando as modalidades.
 
-**Retorno:** `list[str]` — caminhos dos arquivos PNG gerados (ex: `métricas/comparativo.png`).
+**Retorno:** `list[str]` — caminhos dos arquivos PNG gerados (ex: `metricas/comparativo.png`).
 
 ### `limpar_resultados()`
 

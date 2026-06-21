@@ -29,24 +29,24 @@ Recombina uma lista de fatias (na ordem) em uma unica matriz global.
 
 **Retorno:** `list[list[int]]`.
 
-### `gerar_mapa_influenciadores(linhas, colunas, semente)`
+### `criar_mapa_influenciadores(linhas, colunas, percentual=0.01, semente_influenciadores=123)`
 
-**OBS:** Esta funcao foi movida para `core/automato.py::criar_mapa_influenciadores`. Mantida por compatibilidade.
+Cria um conjunto de coordenadas globais de influenciadores. Por padrao, marca 1% da população usando semente fixa para reprodutibilidade.
 
 ### `imprimir_grade(matriz)`
 
 Imprime a matriz formatada no console com cores (ANSI) para cada estado.
 
-### `imprimir_estatisticas(geração, contagem)`
+### `imprimir_estatisticas(contagem, geracao=None, total_celulas=None)`
 
 Exibe resumo textual de uma geração: quantidade de ignorantes, espalhadores e inativos.
 
-### `Cronômetro`
+### `Cronometro`
 
 Classe simples para medicao de tempo:
 
 ```python
-crono = Cronômetro()
+crono = Cronometro()
 crono.iniciar()
 # ... trabalho ...
 crono.parar()
