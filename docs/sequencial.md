@@ -1,17 +1,17 @@
-# Versao Sequencial (`main_sequencial.py`)
+# Versão Sequencial (`main_sequencial.py`)
 
-Entry point e implementação da versao sequencial refatorada.
+Entry point e implementação da versão sequencial refatorada.
 
 ## Fluxo de Execução
 
 1. Parsing de argumentos CLI via `argparse`.
-2. Criacao da matriz inicial com `criar_matriz()`.
+2. Criação da matriz inicial com `criar_matriz()`.
 3. Para cada geração:
    - Calcula a nova geração com `calcular_geracao()`.
    - Aplica efeito mídia com `aplicar_midia()` (a partir de `--geracao-midia`).
    - Coleta métricas de CPU (`psutil.cpu_percent()`) e tempo por geração.
    - Conta estados com `contar_estados()`.
-4. Exporta métricas para CSV e gera grafico ao final.
+4. Exporta métricas para CSV e gera gráfico ao final.
 
 ## CLI
 
@@ -19,14 +19,14 @@ Entry point e implementação da versao sequencial refatorada.
 python3 main_sequencial.py [--param valor]
 ```
 
-| Parametro                | Default | Descricao                                   |
+| Parâmetro                | Default | Descrição                                   |
 | ------------------------ | ------- | ------------------------------------------- |
-| `--linhas`               | 100     | Numero de linhas                            |
-| `--colunas`              | 100     | Numero de colunas                           |
-| `--geracoes`             | 50      | Numero de gerações                          |
+| `--linhas`               | 100     | Número de linhas                            |
+| `--colunas`              | 100     | Número de colunas                           |
+| `--geracoes`             | 50      | Número de gerações                          |
 | `--espalhadores`         | 0.05    | Percentual inicial de espalhadores          |
-| `--limiar`               | 3       | Limiar de contagio (vizinhos necessarios)   |
-| `--semente`              | 42      | Semente aleatória para reproducibilidade    |
+| `--limiar`               | 3       | Limiar de contágio (vizinhos necessários)   |
+| `--semente`              | 42      | Semente aleatória para reprodutibilidade    |
 | `--mostrar-grade`        | flag    | Imprime a grade no console a cada geração   |
 | `--influenciadores`      | True    | Ativa/desativa influenciadores digitais     |
 | `--usar-midia`           | True    | Ativa/desativa efeito mídia                 |
@@ -35,7 +35,7 @@ python3 main_sequencial.py [--param valor]
 
 ## Retorno
 
-A funcao `executar_sequencial()` retorna uma tupla de 3 elementos:
+A função `executar_sequencial()` retorna uma tupla de 3 elementos:
 
 ```python
 (matriz, tempo_total, métricas)
@@ -47,7 +47,7 @@ A funcao `executar_sequencial()` retorna uma tupla de 3 elementos:
 
 ## Arquivos Gerados
 
-| Arquivo                            | Conteudo                           |
+| Arquivo                            | Conteúdo                           |
 | ---------------------------------- | ---------------------------------- |
 | `metricas/metricas_sequencial.csv` | CPU e tempo por geração            |
-| `metricas/metricas_sequencial.png` | Grafico de CPU e tempo por geração |
+| `metricas/metricas_sequencial.png` | Gráfico de CPU e tempo por geração |

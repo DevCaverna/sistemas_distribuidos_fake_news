@@ -1,6 +1,6 @@
-# Versao Paralela (`paralelo/`)
+# Versão Paralela (`paralelo/`)
 
-Implementação paralela com `threading` nativo do Python, seguindo o padrao Mestre-Trabalhador.
+Implementação paralela com `threading` nativo do Python, seguindo o padrão Mestre-Trabalhador.
 
 ## Arquitetura
 
@@ -28,7 +28,7 @@ Classe `MestreParalelo` que:
 ### Sincronização
 
 - `threading.Condition` e `threading.Lock` para coordenar a troca de bordas.
-- Barreira logica: todos os workers devem completar o calculo antes de iniciar a proxima geração.
+- Barreira lógica: todos os workers devem completar o cálculo antes de iniciar a próxima geração.
 - Ghost rows: cada worker recebe a última linha do worker anterior (ghost_topo) e a primeira linha do worker seguinte (ghost_base).
 
 ### Worker (`_worker_thread`)
@@ -43,13 +43,13 @@ Cada worker:
    - Retorna bordas (primeira e última linha da fatia calculada) para o mestre.
 3. Retorna fatia final e métricas ao mestre.
 
-### Divisao da Matriz
+### Divisão da Matriz
 
-A matriz e dividida horizontalmente em `num_workers` fatias de tamanho aproximadamente igual. Se a divisao nao for exata, o último worker absorve as linhas restantes.
+A matriz é dividida horizontalmente em `num_workers` fatias de tamanho aproximadamente igual. Se a divisão não for exata, o último worker absorve as linhas restantes.
 
 ### Determinismo
 
-Com `num_workers=1` (sem ghost rows), o resultado e identico ao sequencial. Com 2+ workers, o determinismo entre execucoes depende do escalonamento das threads (`Condition.acquire()`), podendo variar entre execucoes devido a disputa por locks.
+Com `num_workers=1` (sem ghost rows), o resultado é idêntico ao sequencial. Com 2+ workers, o determinismo entre execuções depende do escalonamento das threads (`Condition.acquire()`), podendo variar entre execuções devido a disputa por locks.
 
 ## CLI
 
@@ -57,19 +57,19 @@ Com `num_workers=1` (sem ghost rows), o resultado e identico ao sequencial. Com 
 python3 -m paralelo.main_paralelo [--param valor]
 ```
 
-| Parametro        | Default | Descricao                          |
+| Parâmetro        | Default | Descrição                          |
 | ---------------- | ------- | ---------------------------------- |
-| `--linhas`       | 100     | Numero de linhas                   |
-| `--colunas`      | 100     | Numero de colunas                  |
-| `--geracoes`     | 50      | Numero de gerações                 |
+| `--linhas`       | 100     | Número de linhas                   |
+| `--colunas`      | 100     | Número de colunas                  |
+| `--geracoes`     | 50      | Número de gerações                 |
 | `--espalhadores` | 0.05    | Percentual inicial de espalhadores |
-| `--limiar`       | 3       | Limiar de contagio                 |
+| `--limiar`       | 3       | Limiar de contágio                 |
 | `--semente`      | 42      | Semente aleatória                  |
-| `--workers`      | 2       | Numero de threads workers          |
+| `--workers`      | 2       | Número de threads workers          |
 
 ## Arquivos Gerados
 
-| Arquivo                         | Conteudo                            |
+| Arquivo                         | Conteúdo                            |
 | ------------------------------- | ----------------------------------- |
 | `metricas/metricas_workers.csv` | Métricas por worker/geração         |
-| `metricas/profiling_*.png`      | Graficos de CPU, latência, gargalos |
+| `metricas/profiling_*.png`      | Gráficos de CPU, latência, gargalos |

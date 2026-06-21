@@ -84,7 +84,7 @@ A comunicação é realizada via invocação de métodos remotos. O Mestre expõ
 
 ## 6. Coleta de Métricas (Requisitos de Avaliação)
 
-- **Tempo Total de Processamento:** `time.perf_counter()` no Mestre (apos `inicializar` até após `aguardar_resultado`).
+- **Tempo Total de Processamento:** `time.perf_counter()` no Mestre (após `inicializar` até após `aguardar_resultado`).
 - **Custo de Comunicação:** O Mestre incrementa `bytes_trafegados` com `sys.getsizeof()` dos dados de borda trafegados a cada chamada de `enviar_bordas` e `obter_ghosts`.
 
 ## 7. Estratégia para Melhorias (Diferencial / Inovação)
