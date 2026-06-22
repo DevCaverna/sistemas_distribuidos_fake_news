@@ -60,44 +60,74 @@ def gerar_comparativo():
 
     cores = {"Sequencial": "#3498db", "Paralela": "#8E44AD", "Distribuida": "#27AE60"}
 
-    fig, axes = plt.subplots(1, 3, figsize=(16, 5))
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 
     bar_colors = [cores.get(t, "#95a5a6") for t in tipos]
-    axes[0].bar(tipos, tempos, color=bar_colors, edgecolor="white", linewidth=1.5)
-    axes[0].set_ylabel("Tempo (s)")
-    axes[0].set_title("Tempo Total de Execucao", fontsize=13, weight="bold")
-    axes[0].grid(axis="y", alpha=0.3)
 
+    # --- Topo Esquerdo: Tempo Total ---
+    axes[0, 0].bar(tipos, tempos, color=bar_colors, edgecolor="white", linewidth=1.5)
+    axes[0, 0].set_ylabel("Tempo (s)")
+    axes[0, 0].set_title("Tempo Total de Execucao", fontsize=13, weight="bold")
+    axes[0, 0].grid(axis="y", alpha=0.3)
     for i, v in enumerate(tempos):
-        axes[0].text(i, v + max(tempos) * 0.02, f"{v:.4f}s",
-                     ha="center", fontsize=10, fontweight="bold")
+        axes[0, 0].text(i, v + max(tempos) * 0.02, f"{v:.4f}s",
+                        ha="center", fontsize=10, fontweight="bold")
 
-    axes[1].bar(tipos, cpus, color=bar_colors, edgecolor="white", linewidth=1.5)
-    axes[1].set_ylabel("CPU (%)")
-    axes[1].set_title("Consumo Medio de CPU", fontsize=13, weight="bold")
-    axes[1].grid(axis="y", alpha=0.3)
-
+    # --- Topo Direito: CPU ---
+    axes[0, 1].bar(tipos, cpus, color=bar_colors, edgecolor="white", linewidth=1.5)
+    axes[0, 1].set_ylabel("CPU (%)")
+    axes[0, 1].set_title("Consumo Medio de CPU", fontsize=13, weight="bold")
+    axes[0, 1].grid(axis="y", alpha=0.3)
     max_cpu = max(cpus) if cpus else 1
     for i, v in enumerate(cpus):
-        axes[1].text(i, v + max_cpu * 0.02 + 0.5, f"{v:.1f}%",
-                     ha="center", fontsize=10, fontweight="bold")
+        axes[0, 1].text(i, v + max_cpu * 0.02 + 0.5, f"{v:.1f}%",
+                        ha="center", fontsize=10, fontweight="bold")
 
+    # --- Baixo Esquerdo: Rede ---
     rede_labels = []
     for t, r in zip(tipos, redes):
         if r is not None:
             rede_labels.append(f"{r / 1024:.1f} KB")
         else:
             rede_labels.append("N/A")
-
-    axes[2].bar(tipos, [r if r is not None else 0 for r in redes],
-                color=bar_colors, edgecolor="white", linewidth=1.5)
-    axes[2].set_ylabel("Dados Trafegados (bytes)")
-    axes[2].set_title("Comunicacao de Rede", fontsize=13, weight="bold")
-    axes[2].grid(axis="y", alpha=0.3)
-
+    axes[1, 0].bar(tipos, [r if r is not None else 0 for r in redes],
+                   color=bar_colors, edgecolor="white", linewidth=1.5)
+    axes[1, 0].set_ylabel("Dados Trafegados (bytes)")
+    axes[1, 0].set_title("Comunicacao de Rede", fontsize=13, weight="bold")
+    axes[1, 0].grid(axis="y", alpha=0.3)
     for i, label in enumerate(rede_labels):
-        axes[2].text(i, (redes[i] or 0) + max([r or 0 for r in redes]) * 0.02,
-                     label, ha="center", fontsize=10, fontweight="bold")
+        axes[1, 0].text(i, (redes[i] or 0) + max([r or 0 for r in redes]) * 0.02,
+                        label, ha="center", fontsize=10, fontweight="bold")
+
+    # --- Baixo Direito: Speedup ---
+    t_seq = _resultados.get("Sequencial")
+    speedups = []
+    speedup_labels = []
+    for t in tipos:
+        r = _resultados[t]
+        if t_seq and r.tempo_total > 0:
+            sp = t_seq.tempo_total / r.tempo_total
+        else:
+            sp = 1.0
+        speedups.append(sp)
+        speedup_labels.append(f"{sp:.2f}x")
+
+    speedup_colors = [cores.get(t, "#95a5a6") for t in tipos]
+
+    bars = axes[1, 1].bar(tipos, speedups, color=speedup_colors, edgecolor="white", linewidth=1.5)
+    axes[1, 1].axhline(y=1.0, color="black", linestyle="--", linewidth=1.2, alpha=0.7, label="Baseline Sequencial (1x)")
+    axes[1, 1].set_ylabel("Speedup")
+    axes[1, 1].set_title("Speedup (T_seq / T_par)", fontsize=13, weight="bold")
+    axes[1, 1].grid(axis="y", alpha=0.3)
+    axes[1, 1].legend(fontsize=9)
+
+    max_sp = max(speedups) if speedups else 1.0
+    for i, v in enumerate(speedups):
+        offset = max_sp * 0.03 if v >= 0 else -max_sp * 0.06
+        va = "bottom" if v >= 0 else "top"
+        axes[1, 1].text(i, v + offset, speedup_labels[i],
+                        ha="center", va=va, fontsize=10, fontweight="bold",
+                        color=cores.get(tipos[i], "#333333"))
 
     plt.tight_layout()
     caminho = os.path.join(DIRETORIO, "comparativo.png")
