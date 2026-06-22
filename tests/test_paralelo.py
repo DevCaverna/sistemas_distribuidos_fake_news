@@ -1,12 +1,9 @@
 """
 Testes para paralelo/mestre.py (MestreParalelo).
 
-Nota: a versão paralela não usa mapa_influenciadores, portanto a comparação
-com o sequencial é feita sem influenciadores. Com 1 worker não há ghost rows,
-então o resultado é idêntico ao sequencial. Com N > 1 workers, o worker 0
-computa a geração 1 sem ghost_base (limitação conhecida da implementação),
-portanto não é esperado que o resultado final seja idêntico ao sequencial —
-os testes verificam shape, estados válidos e determinismo.
+Nota: a versão paralela utiliza multiprocessing (paralelismo real, sem GIL).
+Com 1 worker não há ghost rows, então o resultado é idêntico ao sequencial.
+Com N > 1 workers, os testes verificam shape, estados válidos e determinismo.
 """
 
 import pytest
@@ -24,10 +21,11 @@ PARAMS = dict(
     percentual_espalhadores=0.1,
     limiar=2,
     semente=42,
+    usar_influenciadores=False,
     usar_midia=False,
 )
 
-TIMEOUT = 30  # segundos
+TIMEOUT = 60  # segundos (multiprocessing pode ser mais lento para iniciar)
 
 
 def _run_sequencial_puro(linhas, colunas, geracoes, percentual_espalhadores, limiar, semente):
@@ -45,13 +43,18 @@ def _executar_paralelo(num_workers, **params):
     mestre.iniciar_workers()
     concluiu = mestre._evento_resultado.wait(timeout=TIMEOUT)
     assert concluiu, f"Timeout: paralelo com {num_workers} workers não terminou em {TIMEOUT}s"
+    mestre.aguardar_processos()
     return mestre.obter_matriz_final(), mestre
 
 
 class TestMestreParalelo:
     def test_1_worker_resultado_igual_sequencial(self):
         resultado_par, _ = _executar_paralelo(1, **PARAMS)
-        resultado_seq = _run_sequencial_puro(**{k: v for k, v in PARAMS.items() if k not in ("usar_midia", "geracao_midia", "prob_sensacionalista")})
+        resultado_seq = _run_sequencial_puro(
+            linhas=PARAMS["linhas"], colunas=PARAMS["colunas"],
+            geracoes=PARAMS["geracoes"], percentual_espalhadores=PARAMS["percentual_espalhadores"],
+            limiar=PARAMS["limiar"], semente=PARAMS["semente"],
+        )
         assert resultado_par == resultado_seq
 
     def test_2_workers_shape_correto(self):
@@ -84,14 +87,11 @@ class TestMestreParalelo:
 
     def test_bytes_trafegados_com_2_workers(self):
         _, mestre = _executar_paralelo(2, **PARAMS)
-        assert mestre.bytes_trafegados > 0
+        assert mestre.bytes_trafegados.value > 0
 
     def test_sem_bytes_trafegados_com_1_worker(self):
-        # Com 1 worker não há vizinhos, logo os ghosts são None e bytes = 0
         _, mestre = _executar_paralelo(1, **PARAMS)
-        # sys.getsizeof(None) é adicionado para ghost_topo e ghost_base None de cada geração
-        # mas a lógica real só conta bordas não-None; verifica apenas que a métrica existe
-        assert isinstance(mestre.bytes_trafegados, int)
+        assert isinstance(mestre.bytes_trafegados.value, int)
 
     def test_determinismo_2_workers(self):
         r1, _ = _executar_paralelo(2, **PARAMS)

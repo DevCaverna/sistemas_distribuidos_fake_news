@@ -1,14 +1,14 @@
 # Versão Paralela (`paralelo/`)
 
-Implementação paralela com `threading` nativo do Python, seguindo o padrão Mestre-Trabalhador.
+Implementação paralela com **multiprocessing** nativo do Python, seguindo o padrão Mestre-Trabalhador. Cada worker é um **processo separado** com seu próprio interpretador e GIL, garantindo **paralelismo real em múltiplos núcleos de CPU** para tarefas CPU-bound.
 
 ## Arquitetura
 
 ```
 MestreParalelo
-  ├── Worker 0 (thread) — fatia [0..N1)
-  ├── Worker 1 (thread) — fatia [N1..N2)
-  ├── Worker 2 (thread) — fatia [N2..N3)
+  ├── Worker 0 (processo) — fatia [0..N1)
+  ├── Worker 1 (processo) — fatia [N1..N2)
+  ├── Worker 2 (processo) — fatia [N2..N3)
   └── ...
 ```
 
@@ -17,23 +17,24 @@ MestreParalelo
 Classe `MestreParalelo` que:
 
 1. Cria a matriz global e divide em fatias horizontais (`fatiar_matriz`).
-2. Dispara `num_workers` threads, cada uma processando sua fatia.
+2. Dispara `num_workers` processos, cada um processando sua fatia.
 3. A cada geração:
    - Envia bordas para cada worker (`enviar_bordas`).
-   - Workers calculam a nova geração localmente.
+   - Workers calculam a nova geração localmente em paralelo real.
    - Workers retornam bordas para o mestre (`obter_ghosts`).
    - Mestre calcula ghost rows para cada worker (`_calcular_ghosts`).
 4. Ao final, coleta métricas e remonta a matriz.
 
 ### Sincronização
 
-- `threading.Condition` e `threading.Lock` para coordenar a troca de bordas.
+- `multiprocessing.Condition` e `multiprocessing.Lock` para coordenar a troca de bordas entre processos.
 - Barreira lógica: todos os workers devem completar o cálculo antes de iniciar a próxima geração.
+- `multiprocessing.Manager.dict()` para compartilhar dados das bordas entre processos.
 - Ghost rows: cada worker recebe a última linha do worker anterior (ghost_topo) e a primeira linha do worker seguinte (ghost_base).
 
 ### Worker (`_worker_thread`)
 
-Cada worker:
+Cada worker (processo):
 
 1. Aguarda sua fatia inicial do mestre.
 2. Para cada geração:
@@ -49,7 +50,11 @@ A matriz é dividida horizontalmente em `num_workers` fatias de tamanho aproxima
 
 ### Determinismo
 
-Com `num_workers=1` (sem ghost rows), o resultado é idêntico ao sequencial. Com 2+ workers, o determinismo entre execuções depende do escalonamento das threads (`Condition.acquire()`), podendo variar entre execuções devido a disputa por locks.
+Com `num_workers=1` (sem ghost rows), o resultado é idêntico ao sequencial. Com 2+ workers, o determinismo entre execuções depende da ordem de aquisição dos locks do multiprocessing, podendo variar entre execuções.
+
+## Por que multiprocessing em vez de threading?
+
+Em CPython, o **GIL (Global Interpreter Lock)** impede que threads executem bytecode Python em paralelo em múltiplos núcleos. Para tarefas CPU-bound (como a simulação do autômato), o `threading` oferece apenas **concorrência** (revezamento), não **paralelismo** real. O `multiprocessing` cria processos independentes, cada um com seu próprio GIL, permitindo execução genuinamente paralela em todos os núcleos disponíveis.
 
 ## CLI
 
@@ -65,7 +70,7 @@ python3 -m paralelo.main_paralelo [--param valor]
 | `--espalhadores` | 0.05    | Percentual inicial de espalhadores |
 | `--limiar`       | 3       | Limiar de contágio                 |
 | `--semente`      | 42      | Semente aleatória                  |
-| `--workers`      | 2       | Número de threads workers          |
+| `--workers`      | 2       | Número de processos workers        |
 
 ## Arquivos Gerados
 

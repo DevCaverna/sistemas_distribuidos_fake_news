@@ -1,8 +1,8 @@
 """
-paralelo/main_paralelo.py — Entry point da versao paralela (threads).
+paralelo/main_paralelo.py — Entry point da versao paralela (multiprocessing).
 
-Executa a simulação com pool de threads, coleta métricas (CPU, tempo)
-e gera graficos de telemetria.
+Executa a simulação com pool de processos (paralelismo REAL, sem GIL),
+coleta métricas (CPU, tempo) e gera graficos de telemetria.
 """
 
 import argparse
@@ -17,7 +17,7 @@ def main():
     """Parser de argumentos e ponto de entrada da versao paralela.
 
     Aceita os mesmos parametros de simulação da versao sequencial,
-    acrescido de --workers para definir o tamanho do pool de threads.
+    acrescido de --workers para definir o numero de processos.
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--linhas", type=int, default=100)
@@ -53,6 +53,7 @@ def main():
     crono.iniciar()
 
     mestre.aguardar_resultado()
+    mestre.aguardar_processos()
     crono.parar()
 
     matriz_final = mestre.obter_matriz_final()
@@ -72,7 +73,7 @@ def main():
     relatorio = RelatorioMetricas(args.workers, diretorio_saida="metricas")
     for mw in metricas_raw:
         relatorio.adicionar_metricas_worker(mw)
-    relatorio.imprimir_resumo(crono.elapsed, rotulo="PARALELO (THREADS)")
+    relatorio.imprimir_resumo(crono.elapsed, rotulo="PARALELO (MULTIPROCESSING)")
     relatorio.exportar_csv()
     relatorio.gerar_graficos()
 

@@ -1,1 +1,1 @@
-# paralelo/ — Implementação paralela (Master + Nodes locais via Threads)
+# paralelo/ — Implementação paralela (Master + Workers locais via multiprocessing)

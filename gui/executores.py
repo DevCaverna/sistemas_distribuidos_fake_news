@@ -70,7 +70,7 @@ def rodar_paralelo(app, params):
         from core.comparativo import registrar_resultado
         from gui.telemetria import tentar_exibir_comparativo, carregar_graficos_telemetria
 
-        print("=> Iniciando Mestre Paralelo (Threads Nativas)...")
+        print("=> Iniciando Mestre Paralelo (multiprocessing)...")
         mestre = MestreParalelo(
             linhas=params["linhas"],
             colunas=params["colunas"],
@@ -102,7 +102,7 @@ def rodar_paralelo(app, params):
         todos_cpus = [r["cpu_percent"] for rw in metricas_raw for r in rw]
         cpu_medio = sum(todos_cpus) / len(todos_cpus) if todos_cpus else 0
         registrar_resultado(
-            "Paralela", crono.elapsed, cpu_medio, rede_bytes=mestre.bytes_trafegados
+            "Paralela", crono.elapsed, cpu_medio, rede_bytes=mestre.bytes_trafegados.value
         )
 
         app.after(0, app.atualizar_speedup, "Paralela", crono.elapsed)

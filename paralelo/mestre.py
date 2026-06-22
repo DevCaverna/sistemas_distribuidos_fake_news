@@ -1,12 +1,13 @@
 """
-paralelo/mestre.py — Mestre para a versao paralela (threads).
+paralelo/mestre.py — Mestre para a versao paralela (multiprocessing).
 
-Coordena N threads worker que processam fatias da matriz em paralelo,
+Coordena N processos worker que processam fatias da matriz em paralelo REAL,
 sincronizando a troca de bordas (ghost rows) via barreira com Condition.
+Cada processo possui seu proprio interpretador Python, contornando o GIL.
 """
 
 import sys
-import threading
+from multiprocessing import Process, Lock, Condition, Event, Value, Manager
 
 from core.metricas import MetricasWorker
 from core.utils import (
@@ -48,37 +49,38 @@ class MestreParalelo:
         if usar_influenciadores:
             self.mapa_influenciadores = criar_mapa_influenciadores(linhas, colunas)
 
-        self._cond = threading.Condition()
-        self._bordas = {}
-        self._esp_por_worker = {}
-        self._ghosts = {}
-        self._geracao_pronta = -1
-        self._leitores = 0
-        self._terminar = False
+        self._manager = Manager()
+        self._lock = Lock()
+        self._cond = Condition(self._lock)
+        self._bordas = self._manager.dict()
+        self._esp_por_worker = self._manager.dict()
+        self._ghosts = self._manager.dict()
+        self._geracao_pronta = Value('i', -1)
+        self._leitores = Value('i', 0)
+        self._terminar = Value('b', False)
 
-        self._fatias_finais = [None] * num_workers
-        self._lock_resultado = threading.Lock()
-        self._evento_resultado = threading.Event()
+        self._fatias_finais = self._manager.list([None] * num_workers)
+        self._lock_resultado = Lock()
+        self._evento_resultado = Event()
 
-        self._metricas_workers = [None] * num_workers
-        self._lock_metricas = threading.Lock()
-        self._evento_metricas = threading.Event()
+        self._metricas_workers = self._manager.list([None] * num_workers)
+        self._lock_metricas = Lock()
+        self._evento_metricas = Event()
 
-        self.bytes_trafegados = 0
-        self._lock_bytes = threading.Lock()
+        self.bytes_trafegados = Value('Q', 0)
+        self._lock_bytes = Lock()
+
+        self._processos = []
 
     def iniciar_workers(self):
-        threads = []
         for wid in range(self.num_workers):
             fatia = self.fatias[wid]
-            t = threading.Thread(
+            p = Process(
                 target=self._worker_thread,
                 args=(wid, fatia, self.geracoes, self.limiar),
-                daemon=False,
             )
-            threads.append(t)
-            t.start()
-        return threads
+            self._processos.append(p)
+            p.start()
 
     def _worker_thread(self, worker_id, fatia, geracoes, limiar):
         from core.automato import (
@@ -130,15 +132,22 @@ class MestreParalelo:
                 break
 
         with self._lock_metricas:
-            self._metricas_workers[worker_id] = metricas
+            self._metricas_workers[worker_id] = metricas.exportar()
             if all(m is not None for m in self._metricas_workers):
                 self._evento_metricas.set()
 
         self.enviar_resultado(worker_id, fatia)
 
+    def aguardar_resultado(self):
+        self._evento_resultado.wait()
+
     def aguardar_metricas(self):
         self._evento_metricas.wait()
-        return [m.exportar() for m in self._metricas_workers]
+        return list(self._metricas_workers)
+
+    def aguardar_processos(self):
+        for p in self._processos:
+            p.join()
 
     # --- API usada pelos workers (métodos sincronizados) -----------------
 
@@ -147,7 +156,7 @@ class MestreParalelo:
     ):
         tamanho = sys.getsizeof(borda_topo) + sys.getsizeof(borda_base)
         with self._lock_bytes:
-            self.bytes_trafegados += tamanho
+            self.bytes_trafegados.value += tamanho
 
         with self._cond:
             self._bordas[worker_id] = (borda_topo, borda_base)
@@ -157,15 +166,15 @@ class MestreParalelo:
                 self._calcular_ghosts()
 
                 if sum(self._esp_por_worker.values()) == 0:
-                    self._terminar = True
+                    self._terminar.value = True
 
-                self._geracao_pronta = geracao
-                self._leitores = self.num_workers
+                self._geracao_pronta.value = geracao
+                self._leitores.value = self.num_workers
                 self._cond.notify_all()
 
     def obter_ghosts(self, worker_id, geracao):
         with self._cond:
-            while self._geracao_pronta < geracao:
+            while self._geracao_pronta.value < geracao:
                 self._cond.wait()
 
             ghost_topo, ghost_base = self._ghosts.get(worker_id, (None, None))
@@ -174,11 +183,11 @@ class MestreParalelo:
                 sys.getsizeof(g) for g in (ghost_topo, ghost_base) if g is not None
             )
             with self._lock_bytes:
-                self.bytes_trafegados += tamanho
+                self.bytes_trafegados.value += tamanho
 
-            self._leitores -= 1
+            self._leitores.value -= 1
 
-            if self._leitores == 0:
+            if self._leitores.value == 0:
                 self._bordas.clear()
                 self._esp_por_worker.clear()
                 self._ghosts.clear()
@@ -187,7 +196,7 @@ class MestreParalelo:
             return {
                 "ghost_topo": ghost_topo,
                 "ghost_base": ghost_base,
-                "terminar": self._terminar,
+                "terminar": self._terminar.value,
             }
 
     def _calcular_ghosts(self):
@@ -205,8 +214,5 @@ class MestreParalelo:
             if all(f is not None for f in self._fatias_finais):
                 self._evento_resultado.set()
 
-    def aguardar_resultado(self):
-        self._evento_resultado.wait()
-
     def obter_matriz_final(self):
-        return remontar_matriz(self._fatias_finais)
+        return remontar_matriz(list(self._fatias_finais))
